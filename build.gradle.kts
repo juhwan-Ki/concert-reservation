@@ -38,6 +38,9 @@ dependencies {
 	// swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 
+	// security
+	implementation("org.springframework.boot:spring-boot-starter-security")
+
     // DB
 	runtimeOnly("com.mysql:mysql-connector-j")
 
