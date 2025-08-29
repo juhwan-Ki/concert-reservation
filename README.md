@@ -42,3 +42,4 @@ docker-compose up -d
 ### Quick view
 > 전체 스키마 개요  
 ![ERD](./docs/db-erd.png)
+> https://www.erdcloud.com/d/Cs7fmeZhywwJX7oxQ
