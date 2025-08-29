@@ -21,6 +21,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.attribute.UserPrincipal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Tag(name = "Point", description = "포인트 조회/포인트 충전/포인트 내역 조회")
@@ -39,7 +41,7 @@ public class PointController {
     })
     @GetMapping("/")
     public ResponseEntity<PointResponse> getMyPoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(new PointResponse(10000L, OffsetDateTime.now()));
+        return ResponseEntity.ok(new PointResponse(10000L, LocalDateTime.now()));
     }
 
     @Operation(summary = "내 포인트 충전", description = "현재 로그인한 사용자의 포인트를 충전한다.")
@@ -57,13 +59,13 @@ public class PointController {
     })
     @PostMapping("/charges")
     public ResponseEntity<PointResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me, @Valid @RequestBody PointRequest request) {
-        return ResponseEntity.ok(new PointResponse(10000L ,OffsetDateTime.now()));
+        return ResponseEntity.ok(new PointResponse(10000L ,LocalDateTime.now()));
     }
 
     @Operation(summary = "내 포인트 내역 조회", description = "현재 로그인한 사용자의 포인트 내역을 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = PointResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PointHistoryPage.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
@@ -76,8 +78,7 @@ public class PointController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(required = false) UseType type,
             @RequestParam(required = false) OffsetDateTime from,
-            @RequestParam(required = false) OffsetDateTime to,
-            @RequestParam(required = false) OffsetDateTime snapshotAt // 선택: 고정 윈도우
+            @RequestParam(required = false) OffsetDateTime to
             ) {
         return ResponseEntity.ok(null);
     }
