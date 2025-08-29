@@ -62,7 +62,7 @@ public class AdminController {
     @PatchMapping("/concerts/{concertId}")
     public ResponseEntity<ConcertResponse> update(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal token,
-            @PathVariable Long concertId,
+            @Parameter(description = "콘서트 ID", example = "101") @PathVariable Long concertId,
             @Valid @RequestBody ConcertUpdateRequest request
     ) {
         return ResponseEntity.ok().body(null);
@@ -80,13 +80,14 @@ public class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal token,
-            @PathVariable Long concertId
+            @Parameter(description = "콘서트 ID", example = "101") @PathVariable Long concertId
     ) {
     }
 
     @Operation(summary = "공개 전환")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "200", description = "성공",
+                    content = @Content(schema = @Schema(implementation = ConcertResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
@@ -95,14 +96,15 @@ public class AdminController {
     @PostMapping("/concerts/{concertId}/publish")
     public ResponseEntity<ConcertResponse> publish(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal token,
-            @PathVariable Long concertId
+            @Parameter(description = "콘서트 ID", example = "101") @PathVariable Long concertId
     ) {
         return ResponseEntity.ok().body(null);
     }
 
     @Operation(summary = "비공개 전환")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공"),
+            @ApiResponse(responseCode = "200", description = "성공",
+                    content = @Content(schema = @Schema(implementation = ConcertResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
@@ -111,7 +113,7 @@ public class AdminController {
     @PostMapping("/concerts/{concertId}/unpublish")
     public ResponseEntity<ConcertResponse> unpublish(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal token,
-            @PathVariable Long concertId
+            @Parameter(description = "콘서트 ID", example = "101") @PathVariable Long concertId
     ) {
         return ResponseEntity.ok().body(null);
     }

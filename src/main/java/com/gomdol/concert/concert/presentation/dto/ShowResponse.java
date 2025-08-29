@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
-
+@Schema(description = "공연 단건")
 public record ShowResponse(
         @Schema(example = "1", description = "공연 id")
         Long id,

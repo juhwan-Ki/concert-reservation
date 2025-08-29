@@ -2,8 +2,9 @@ package com.gomdol.concert.concert.presentation.controller;
 
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertPage;
-import com.gomdol.concert.concert.presentation.dto.ShowPage;
+import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -59,17 +60,15 @@ public class ConcertController {
     @Operation(summary = "공연 목록 조회", description = "특정 콘서트의 공연 일정을 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = ShowPage.class))),
+                    content = @Content(schema = @Schema(implementation = ShowResponseList.class))),
             @ApiResponse(responseCode = "404", description = "없음",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/{concertId}/shows")
-    public ResponseEntity<ShowPage> geListShows(
-            @PathVariable @Min(1) Long concertId,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+    public ResponseEntity<ShowResponseList> geListShows(
+            @Parameter(description = "콘서트 ID", example = "101") @PathVariable @Min(1) Long concertId
     ) {
         return ResponseEntity.ok(null);
     }
