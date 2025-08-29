@@ -1,6 +1,7 @@
 package com.gomdol.concert.reservation.presentation.controller;
 
 import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.common.security.QueuePrincipal;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
 import com.gomdol.concert.reservation.presentation.dto.*;
 import com.sun.security.auth.UserPrincipal;
@@ -46,6 +47,8 @@ public class ReservationController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
                     content = @Content(schema = @Schema(implementation = SeatAvailabilityResponseList.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패",
+                    content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
@@ -54,7 +57,9 @@ public class ReservationController {
             @Parameter(description = "콘서트 ID", example = "101")
             @PathVariable Long concertId,
             @Parameter(description = "회차 ID", example = "202")
-            @PathVariable Long showId
+            @PathVariable Long showId,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
         return ResponseEntity.ok(null);
     }
@@ -79,7 +84,8 @@ public class ReservationController {
     @PostMapping("/")
     public ResponseEntity<ReservationCreateResponse> createReservation(
             @Valid @RequestBody ReservationRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
         // return ResponseEntity.created(URI.create("/api/v1/reservations/" + id)).body(body);
         return ResponseEntity.status(HttpStatus.CREATED).body(null);

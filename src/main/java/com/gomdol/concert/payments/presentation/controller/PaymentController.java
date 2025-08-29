@@ -1,7 +1,9 @@
-package com.gomdol.concert.payments.presentation.dto;
+package com.gomdol.concert.payments.presentation.controller;
 
 import com.gomdol.concert.common.exception.ApiException;
-import com.gomdol.concert.payments.presentation.controller.ChargeResponse;
+import com.gomdol.concert.common.security.QueuePrincipal;
+import com.gomdol.concert.payments.presentation.dto.ChargeRequest;
+import com.gomdol.concert.payments.presentation.dto.ChargeResponse;
 import com.sun.security.auth.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,8 +40,9 @@ public class PaymentController {
     @PostMapping("/")
     public ResponseEntity<ChargeResponse> pay(
             @RequestHeader(value = "Idempotencyxx-Key", required = false) String idemKey,
-            @Valid @RequestBody ChargeRequest req,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user
+            @Valid @RequestBody ChargeRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
+            @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
         return ResponseEntity.ok(null);
     }
