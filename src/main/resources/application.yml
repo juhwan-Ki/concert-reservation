@@ -2,15 +2,18 @@ spring:
   application:
     name: concert-reservation
   profiles:
-    active: local
+    active: dev
   datasource:
     name: ReservationDataSource
     type: com.zaxxer.hikari.HikariDataSource
-    hikari:
-      maximum-pool-size: 3
-      connection-timeout: 10000
-      max-lifetime: 60000
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 5
+      connection-timeout: 10000
+      idle-timeout: 600000
+      max-lifetime: 1800000   # 30m (RDS 권장치와 유사)
+      pool-name: main-pool
   jpa:
     open-in-view: false
     generate-ddl: false
@@ -20,12 +23,19 @@ spring:
     properties:
       hibernate.timezone.default_storage: NORMALIZE_UTC
       hibernate.jdbc.time_zone: UTC
+      # 공통 성능 기본
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
 
----
-spring.config.activate.on-profile: local, test
+server:
+  port: 8080
 
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/concert_reservation?characterEncoding=UTF-8&serverTimezone=UTC
-    username: application
-    password: application
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui
+    operationsSorter: method
+    tagsSorter: alpha
+    displayRequestDuration: true
