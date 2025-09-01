@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: concert-reservation
+  datasource:
+    url: jdbc:mysql://localhost:3306/concert_reservation?characterEncoding=UTF-8&serverTimezone=UTC
+    username: application
+    password: application
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      leak-detection-threshold: 5000  # 커넥션 누수 잡기(개발 전용)
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update           # 개발 편의
+    properties:
+      hibernate.format_sql: true
+      hibernate.generate_statistics: true  # 성능 통계(개발 전용)
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
