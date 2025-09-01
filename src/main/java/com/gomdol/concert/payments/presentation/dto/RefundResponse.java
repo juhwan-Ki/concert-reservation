@@ -1,4 +1,4 @@
-package com.gomdol.concert.reservation.presentation.dto;
+package com.gomdol.concert.payments.presentation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

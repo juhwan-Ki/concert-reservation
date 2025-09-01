@@ -123,25 +123,4 @@ public class ReservationController {
     ) {
         return ResponseEntity.ok(null);
     }
-
-
-    // TODO: 현재 부분 환불은 하지 않고 전체 환불만 가능하도록 함
-    @Operation(summary = "예약 취소(환불 요청)")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "환불 요청 성공",
-                    content = @Content(schema = @Schema(implementation = RefundResponse.class))),
-            @ApiResponse(responseCode = "401", description = "인증 실패",
-                    content = @Content(schema = @Schema(implementation = ApiException.class))),
-            @ApiResponse(responseCode = "404", description = "예약 없음",
-                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "환불 불가 상태 (기간 만료 등)",
-                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    })
-    @PostMapping("/{reservationId}/cancel")
-    public ResponseEntity<RefundResponse> cancelReservation(
-            @PathVariable Long reservationId,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user
-    ) {
-        return ResponseEntity.ok(null);
-    }
 }
