@@ -1,5 +1,6 @@
 package com.gomdol.concert.concert.presentation.dto;
 
+import com.gomdol.concert.concert.domain.ConcertStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
@@ -19,7 +20,7 @@ public record ConcertResponse(
         String artist,
 
         @Schema(example = "공개", description = "상태")
-        String status,
+        ConcertStatus status,
 
         @Schema(example = "2025-08-12", description = "시작일")
         LocalDate startAt,
