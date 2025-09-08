@@ -3,9 +3,11 @@ package com.gomdol.concert.concert.presentation.dto;
 import com.gomdol.concert.concert.domain.ConcertStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 
 import java.time.LocalDate;
 
+@Builder
 public record ConcertResponse(
         @Schema(example = "1", description = "콘서트 id")
         Long id,
