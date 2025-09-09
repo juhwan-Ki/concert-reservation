@@ -1,7 +1,11 @@
 package com.gomdol.concert.concert.presentation.controller;
 
+import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.concert.application.service.ConcertService;
+import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertPage;
+import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,17 +16,27 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
 @Tag(name="Concert", description = "콘서트 조회,단일 조회,공연 조회")
 @RestController
+@Validated
 @RequestMapping("/api/v1/concerts")
+@RequiredArgsConstructor
 public class ConcertController {
 
+    private final ConcertService concertService;
+
+    // TODO: 현재는 키워드로만 조회하도록 함, 추후 장르,인기순과 같은 검색 기능 추가 필요
     @Operation(summary = "콘서트 조회", description = "현재 진행중인 콘서트 리스트를 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
@@ -31,16 +45,12 @@ public class ConcertController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/")
-    public ResponseEntity<ConcertPage> getConcertPage(
+    public ResponseEntity<PageResponse<ConcertResponse>> getConcertPage(
             @Schema(example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
-            @Schema(example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @Schema(example = "QWER") @RequestParam(required = false) String keyword,
-            @Schema(description = "시작날짜(이상)", example = "2025-08-01")
-            @RequestParam(required = false) LocalDateTime from,
-            @Schema(description = "종료날짜(미만)", example = "2025-08-31")
-            @RequestParam(required = false) LocalDateTime to
+            @Schema(example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
+            @Schema(example = "QWER") @RequestParam(required = false) String keyword
     ) {
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(concertService.getConcertList(PageRequest.of(page, size), keyword));
     }
 
     @Operation(summary = "콘서트 상세 조회", description = "현재 진행중인 콘서트 상세 내역을 조회한다.")
