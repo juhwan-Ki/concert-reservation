@@ -1,14 +1,18 @@
 package com.gomdol.concert.concert.infra.persistence;
 
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.concert.domain.AgeRating;
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.ConcertStatus;
+import com.gomdol.concert.show.infra.persistence.ShowEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,11 +37,12 @@ public class ConcertEntity extends SoftDeleteEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, length = 20, name = "running_time")
-    private String runningTime;
+    @Column(nullable = false, name = "running_time")
+    private int runningTime;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10, name = "age_rating")
-    private String ageRating;
+    private AgeRating ageRating;
 
     @Column(length = 100, name = "thumbnail_url")
     private String thumbnailUrl;
@@ -55,7 +60,11 @@ public class ConcertEntity extends SoftDeleteEntity {
     @Column(nullable = false, name = "end_at")
     private LocalDate endAt;
 
-    public static ConcertEntity create(String title, String artist, String description, String runningTime, String ageRating,
+    @OneToMany(mappedBy = "concerts", fetch = FetchType.LAZY)
+    @OrderBy("showAt ASC") // 날짜 오름차순
+    private List<ShowEntity> shows = new ArrayList<>();
+
+    public static ConcertEntity create(String title, String artist, String description, int runningTime, AgeRating ageRating,
              String thumbnailUrl, String posterUrl, ConcertStatus status, LocalDate startAt, LocalDate endAt)
     {
         return ConcertEntity.builder()
