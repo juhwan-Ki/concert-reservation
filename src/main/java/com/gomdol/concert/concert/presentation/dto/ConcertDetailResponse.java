@@ -1,5 +1,8 @@
 package com.gomdol.concert.concert.presentation.dto;
 
+import com.gomdol.concert.concert.domain.Concert;
+import com.gomdol.concert.show.domain.Show;
+import com.gomdol.concert.venue.domain.Venue;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
@@ -42,5 +45,19 @@ public record ConcertDetailResponse(
         @Schema(description = "공연 리스트")
         List<ShowResponse> showList
 ){
-
+        public static ConcertDetailResponse from(Concert c, Venue v, List<Show> shows) {
+                return ConcertDetailResponse.builder()
+                        .id(c.getId())
+                        .title(c.getTitle())
+                        .venueName(v.getName())
+                        .artist(c.getArtist())
+                        .ageRating(c.getAgeRating() != null ? c.getAgeRating().getDesc() : null)
+                        .runningTime(c.getRunningTime() + "분")
+                        .description(c.getDescription())
+                        .posterUrl(c.getPosterUrl())
+                        .startAt(c.getStartAt())
+                        .endAt(c.getEndAt())
+                        .showList(shows.stream().map(ShowResponse::from).toList())
+                        .build();
+        }
 }

@@ -1,5 +1,6 @@
 package com.gomdol.concert.concert.presentation.dto;
 
+import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.ConcertStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -33,4 +34,15 @@ public record ConcertResponse(
         @Schema(description="섬네일 이미지 url", example = "https://imga-asdasdasc.com?asdasdas")
         @NotBlank String thumbnailUrl
 ) {
+        public static ConcertResponse from(Concert concert) {
+           return ConcertResponse.builder()
+                        .id(concert.getId())
+                        .title(concert.getTitle())
+                        .artist(concert.getArtist())
+                        .status(concert.getStatus())
+                        .startAt(concert.getStartAt())
+                        .endAt(concert.getEndAt())
+                        .thumbnailUrl(concert.getThumbnailUrl())
+                        .build();
+        }
 }
