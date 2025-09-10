@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
-public interface ConcertRepository {
+public interface ConcertQueryRepository {
     Optional<Concert> findById(Long id);
     Page<Concert> findAllByStatus(ConcertStatus status, Pageable pageable);
     Page<Concert> findAllPublicAndKeyWord(Pageable pageable, String keyword);

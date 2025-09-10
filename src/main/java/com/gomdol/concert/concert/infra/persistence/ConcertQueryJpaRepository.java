@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ConcertJpaRepository extends JpaRepository<ConcertEntity, Long> {
+public interface ConcertQueryJpaRepository extends JpaRepository<ConcertEntity, Long> {
     // 관리자용
     Page<ConcertEntity> findAllByStatus(ConcertStatus status, Pageable pageable);
     // 사용자용(public + keyword)

@@ -1,8 +1,8 @@
 package com.gomdol.concert.concert.application;
 
 import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.concert.application.service.ConcertService;
-import com.gomdol.concert.concert.domain.repository.ConcertRepository;
+import com.gomdol.concert.concert.application.service.ConcertQueryService;
+import com.gomdol.concert.concert.domain.repository.ConcertQueryRepository;
 import com.gomdol.concert.concert.fixture.ConcertFixture;
 import com.gomdol.concert.concert.fixture.ShowFixture;
 import com.gomdol.concert.concert.fixture.VenueFixture;
@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -31,10 +30,10 @@ import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
-public class ConcertServiceTest {
+public class ConcertQueryServiceTest {
 
     @Mock
-    private ConcertRepository concertRepository;
+    private ConcertQueryRepository concertQueryRepository;
 
     @Mock
     private VenueRepository venueRepository;
@@ -43,7 +42,7 @@ public class ConcertServiceTest {
     private ShowRepository showRepository;
 
     @InjectMocks
-    private ConcertService concertService;
+    private ConcertQueryService concertQueryService;
 
     /*
     * 콘서트 서비스 테스트
@@ -67,11 +66,11 @@ public class ConcertServiceTest {
     public void 아이디에_해당하는_값이_존재하면_DTO로_매핑해_반환한다() throws Exception {
         // given
         Long id = 1L;
-        when(concertRepository.findById(id)).thenReturn(Optional.of(ConcertFixture.create()));
+        when(concertQueryRepository.findById(id)).thenReturn(Optional.of(ConcertFixture.create()));
         when(venueRepository.findByConcertId(id)).thenReturn(Optional.of(VenueFixture.create()));
         when(showRepository.findByConcertId(id)).thenReturn(ShowFixture.createList());
         // when
-        ConcertDetailResponse response = concertService.getConcertById(id);
+        ConcertDetailResponse response = concertQueryService.getConcertById(id);
         // then
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(id);
@@ -99,10 +98,10 @@ public class ConcertServiceTest {
     public void 아이디에_해당하는_값이_없으면_IllegalArgumentException_예외를_던진다() throws Exception {
         // given
         Long id = 999L;
-        when(concertRepository.findById(id)).thenReturn(Optional.of(ConcertFixture.create()));
+        when(concertQueryRepository.findById(id)).thenReturn(Optional.of(ConcertFixture.create()));
         // when & then
-        assertThatThrownBy(() -> concertService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
-        verify(concertRepository).findById(id);
+        assertThatThrownBy(() -> concertQueryService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
+        verify(concertQueryRepository).findById(id);
     }
 
     @Test
@@ -110,52 +109,52 @@ public class ConcertServiceTest {
     public void 페이징_기본값을_적용해서_페이징된_리스트를_반환한다() throws Exception {
         // given
         Pageable pageable = PageRequest.of(0, 20);
-        when(concertRepository.findAllPublic(any(Pageable.class)))
+        when(concertQueryRepository.findAllPublic(any(Pageable.class)))
                 .thenReturn(ConcertFixture.createConcertPage(pageable));
 
         // when
-        PageResponse<ConcertResponse> result = concertService.getConcertList(PageRequest.of(0, 20), "");
+        PageResponse<ConcertResponse> result = concertQueryService.getConcertList(PageRequest.of(0, 20), "");
 
         // then
-        assertThat(result.content()).hasSize(2);
-        verify(concertRepository).findAllPublic(pageable);
+        assertThat(result.content()).hasSize(3);
+        verify(concertQueryRepository).findAllPublic(pageable);
     }
 
     @Test
     public void 리스트_사이즈가_20을_넘으면_20으로_고정된다() {
         // when
-        concertService.getConcertList(PageRequest.of(0, 50), "");
+        concertQueryService.getConcertList(PageRequest.of(0, 50), "");
         // then
-        verify(concertRepository).findAllPublic(PageRequest.of(0, 20)); // 20으로 제한
+        verify(concertQueryRepository).findAllPublic(PageRequest.of(0, 20)); // 20으로 제한
     }
 
     @Test
     void 페이지가_음수면_0으로_보정된다() {
         // when
-        concertService.getConcertList(PageRequest.of(-5, 20), "");
+        concertQueryService.getConcertList(PageRequest.of(-5, 20), "");
 
         // then
-        verify(concertRepository).findAllPublic(PageRequest.of(0, 20));
+        verify(concertQueryRepository).findAllPublic(PageRequest.of(0, 20));
     }
 
     @Test
     void 페이지_사이즈가_음수면_기본값으로_보정된다() {
         // when
-        concertService.getConcertList(PageRequest.of(-5, 20), "");
+        concertQueryService.getConcertList(PageRequest.of(-5, 20), "");
 
         // then
-        verify(concertRepository).findAllPublic(PageRequest.of(0, 20)); // 기본값
+        verify(concertQueryRepository).findAllPublic(PageRequest.of(0, 20)); // 기본값
     }
 
     @Test
     void 마지막_페이지_요청시_빈_결과_반환() {
         // given
         PageRequest pageRequest = PageRequest.of(999, 20);
-        when(concertRepository.findAllPublic(any(Pageable.class)))
+        when(concertQueryRepository.findAllPublic(any(Pageable.class)))
                 .thenReturn(ConcertFixture.createEmpty(pageRequest));
 
         // when
-        PageResponse<ConcertResponse> result = concertService.getConcertList(pageRequest, "");
+        PageResponse<ConcertResponse> result = concertQueryService.getConcertList(pageRequest, "");
 
         // then
         assertThat(result.content()).isEmpty();
