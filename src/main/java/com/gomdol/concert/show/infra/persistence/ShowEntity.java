@@ -3,7 +3,6 @@ package com.gomdol.concert.show.infra.persistence;
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
 import com.gomdol.concert.concert.infra.persistence.ConcertEntity;
 import com.gomdol.concert.show.domain.ShowStatus;
-import com.gomdol.concert.venue.infra.persistence.VenueEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,7 +18,7 @@ import java.time.LocalDateTime;
 @Table(name = "shows",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_show_unique_slot",
-                        columnNames = {"concert_id","venue_id","show_at"})
+                        columnNames = {"concert_id","show_at"})
         })
 @SQLDelete(sql = "UPDATE shows SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
@@ -35,15 +34,16 @@ public class ShowEntity extends SoftDeleteEntity {
             foreignKey = @ForeignKey(name = "fk_show_concert"))
     private ConcertEntity concert;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "venue_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_show_venue"))
-    private VenueEntity venue;
-
     @Column(nullable = false, name = "show_at")
     private LocalDateTime showAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false, length=20)
+    @Column(nullable=false, length = 20)
     private ShowStatus status; // SCHEDULED, ON_SALE, SOLD_OUT, CANCELLED
+
+    @Column(nullable = false)
+    private int reservationCnt = 0;
+
+    @Column(nullable = false)
+    private int capacity;
 }

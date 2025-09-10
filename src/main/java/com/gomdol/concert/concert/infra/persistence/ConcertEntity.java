@@ -5,6 +5,7 @@ import com.gomdol.concert.concert.domain.AgeRating;
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.ConcertStatus;
 import com.gomdol.concert.show.infra.persistence.ShowEntity;
+import com.gomdol.concert.venue.infra.persistence.VenueEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
@@ -63,6 +64,11 @@ public class ConcertEntity extends SoftDeleteEntity {
     @OneToMany(mappedBy = "concerts", fetch = FetchType.LAZY)
     @OrderBy("showAt ASC") // 날짜 오름차순
     private List<ShowEntity> shows = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "venue_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_concert_venue"))
+    private VenueEntity venue;
 
     public static ConcertEntity create(String title, String artist, String description, int runningTime, AgeRating ageRating,
              String thumbnailUrl, String posterUrl, ConcertStatus status, LocalDate startAt, LocalDate endAt)
