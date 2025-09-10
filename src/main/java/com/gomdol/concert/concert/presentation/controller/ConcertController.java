@@ -1,6 +1,7 @@
 package com.gomdol.concert.concert.presentation.controller;
 
 import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.concert.application.service.ConcertQueryService;
 import com.gomdol.concert.concert.application.service.ConcertService;
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
@@ -34,7 +35,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ConcertController {
 
-    private final ConcertService concertService;
+    private final ConcertQueryService concertQueryService;
 
     // TODO: 현재는 키워드로만 조회하도록 함, 추후 장르,인기순과 같은 검색 기능 추가 필요
     @Operation(summary = "콘서트 조회", description = "현재 진행중인 콘서트 리스트를 조회한다.")
@@ -50,7 +51,7 @@ public class ConcertController {
             @Schema(example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
             @Schema(example = "QWER") @RequestParam(required = false) String keyword
     ) {
-        return ResponseEntity.ok(concertService.getConcertList(PageRequest.of(page, size), keyword));
+        return ResponseEntity.ok(concertQueryService.getConcertList(PageRequest.of(page, size), keyword));
     }
 
     @Operation(summary = "콘서트 상세 조회", description = "현재 진행중인 콘서트 상세 내역을 조회한다.")
@@ -64,7 +65,7 @@ public class ConcertController {
     })
     @GetMapping("/{concertId}")
     public ResponseEntity<ConcertDetailResponse> getConcertDetail(@PathVariable @Min(1) Long concertId) {
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(concertQueryService.getConcertById(concertId));
     }
 
     @Operation(summary = "공연 목록 조회", description = "특정 콘서트의 공연 일정을 조회한다.")

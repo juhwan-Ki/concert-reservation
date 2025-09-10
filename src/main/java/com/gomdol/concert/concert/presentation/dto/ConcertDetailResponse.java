@@ -1,6 +1,7 @@
 package com.gomdol.concert.concert.presentation.dto;
 
 import com.gomdol.concert.concert.domain.Concert;
+import com.gomdol.concert.concert.infra.persistence.ConcertEntity;
 import com.gomdol.concert.show.domain.Show;
 import com.gomdol.concert.venue.domain.Venue;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -45,19 +46,19 @@ public record ConcertDetailResponse(
         @Schema(description = "공연 리스트")
         List<ShowResponse> showList
 ){
-        public static ConcertDetailResponse from(Concert c, Venue v, List<Show> shows) {
+        public static ConcertDetailResponse from(ConcertEntity entity) {
                 return ConcertDetailResponse.builder()
-                        .id(c.getId())
-                        .title(c.getTitle())
-                        .venueName(v.getName())
-                        .artist(c.getArtist())
-                        .ageRating(c.getAgeRating() != null ? c.getAgeRating().getDesc() : null)
-                        .runningTime(c.getRunningTime() + "분")
-                        .description(c.getDescription())
-                        .posterUrl(c.getPosterUrl())
-                        .startAt(c.getStartAt())
-                        .endAt(c.getEndAt())
-                        .showList(shows.stream().map(ShowResponse::from).toList())
+                        .id(entity.getId())
+                        .title(entity.getTitle())
+                        .venueName(entity.getVenue().getName())
+                        .artist(entity.getArtist())
+                        .ageRating(entity.getAgeRating() != null ? entity.getAgeRating().getDesc() : null)
+                        .runningTime(entity.getRunningTime() + "분")
+                        .description(entity.getDescription())
+                        .posterUrl(entity.getPosterUrl())
+                        .startAt(entity.getStartAt())
+                        .endAt(entity.getEndAt())
+                        .showList(entity.getShows().stream().map(ShowResponse::from).toList())
                         .build();
         }
 }

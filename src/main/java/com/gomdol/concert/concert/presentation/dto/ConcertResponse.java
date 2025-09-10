@@ -2,6 +2,7 @@ package com.gomdol.concert.concert.presentation.dto;
 
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.ConcertStatus;
+import com.gomdol.concert.concert.infra.persistence.ConcertEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
@@ -34,10 +35,11 @@ public record ConcertResponse(
         @Schema(description="섬네일 이미지 url", example = "https://imga-asdasdasc.com?asdasdas")
         @NotBlank String thumbnailUrl
 ) {
-        public static ConcertResponse from(Concert concert) {
+        public static ConcertResponse from(ConcertEntity concert) {
            return ConcertResponse.builder()
                         .id(concert.getId())
                         .title(concert.getTitle())
+                        .venueName(concert.getVenue().getName())
                         .artist(concert.getArtist())
                         .status(concert.getStatus())
                         .startAt(concert.getStartAt())

@@ -1,6 +1,7 @@
 package com.gomdol.concert.concert.application.service;
 
 import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.util.PageableUtils;
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.repository.ConcertQueryRepository;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
@@ -22,26 +23,18 @@ import java.util.List;
 public class ConcertQueryService {
 
     // TODO: 추후 port 사용하여 infra에 직접 연결하지 않도록 변경
-    private final ConcertQueryRepository concertRepository;
-    private final VenueRepository venueRepository;
-    private final ShowRepository showRepository;
+    private final ConcertQueryRepository concertQueryRepository;
 
     public ConcertDetailResponse getConcertById(Long id) {
-        Concert concert = concertRepository.findById(id).orElseThrow(IllegalArgumentException::new);
-        Venue venue = venueRepository.findByConcertId(concert.getId()).orElseThrow(IllegalArgumentException::new);
-        List<Show> showList = showRepository.findByConcertId(concert.getId());
-
-        return ConcertDetailResponse.from(concert, venue, showList);
+        return concertQueryRepository.findPublicDetailById(id).orElseThrow(IllegalArgumentException::new);
     }
 
     public PageResponse<ConcertResponse> getConcertList(Pageable pageable, String keyword) {
-        Page<Concert> concertPage;
+        Pageable paging = PageableUtils.sanitize(pageable);
         if(keyword == null || keyword.isEmpty())
-            concertPage = concertRepository.findAllPublic(pageable);
+            return concertQueryRepository.findAllPublic(paging);
         else
-            concertPage = concertRepository.findAllPublicAndKeyWord(pageable, keyword);
-
-        return PageResponse.from(concertPage.map(ConcertResponse::from));
+            return concertQueryRepository.findAllPublicAndKeyWord(paging, keyword);
     }
 
 }

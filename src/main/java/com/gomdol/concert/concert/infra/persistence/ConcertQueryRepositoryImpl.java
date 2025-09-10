@@ -1,8 +1,11 @@
 package com.gomdol.concert.concert.infra.persistence;
 
+import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.domain.ConcertStatus;
 import com.gomdol.concert.concert.domain.repository.ConcertQueryRepository;
+import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
+import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,26 +20,20 @@ public class ConcertQueryRepositoryImpl implements ConcertQueryRepository {
     private final ConcertQueryJpaRepository concertJpaRepository;
 
     @Override
-    public Optional<Concert> findById(Long id) {
-        Optional<ConcertEntity> concert = concertJpaRepository.findById(id);
-        return concert.map(ConcertEntity::toDomain);
+    public Optional<ConcertDetailResponse> findPublicDetailById(Long id) {
+        return concertJpaRepository.findPublicDetailById(id, ConcertStatus.PUBLIC)
+                .map(ConcertDetailResponse::from);
     }
 
     @Override
-    public Page<Concert> findAllByStatus(ConcertStatus status, Pageable pageable) {
-        Page<ConcertEntity> entityPage = concertJpaRepository.findAllByStatus(status, pageable);
-        return entityPage.map(ConcertEntity::toDomain);
+    public PageResponse<ConcertResponse> findAllPublicAndKeyWord(Pageable pageable, String keyword) {
+        Page<ConcertEntity> entityPage = concertJpaRepository.findAllPublicAndKeyWord(pageable, keyword, ConcertStatus.PUBLIC);
+        return PageResponse.from(entityPage.map(ConcertResponse::from));
     }
 
     @Override
-    public Page<Concert> findAllPublicAndKeyWord(Pageable pageable, String keyword) {
-        Page<ConcertEntity> entityPage = concertJpaRepository.findAllPublicAndKeyWord(pageable, keyword);
-        return entityPage.map(ConcertEntity::toDomain);
-    }
-
-    @Override
-    public Page<Concert> findAllPublic(Pageable pageable) {
+    public PageResponse<ConcertResponse> findAllPublic(Pageable pageable) {
         Page<ConcertEntity> entityPage = concertJpaRepository.findAllPublic(pageable);
-        return entityPage.map(ConcertEntity::toDomain);
+        return PageResponse.from(entityPage.map(ConcertResponse::from));
     }
 }

@@ -2,6 +2,7 @@ package com.gomdol.concert.concert.presentation.dto;
 
 import com.gomdol.concert.show.domain.Show;
 import com.gomdol.concert.show.domain.ShowStatus;
+import com.gomdol.concert.show.infra.persistence.ShowEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +19,11 @@ public record ShowResponse(
         @Schema(example = "2025-08-12:12:00", description = "공연 시작 시각")
         LocalDateTime showAt
 ) {
-        public static ShowResponse from(Show show) {
+        public static ShowResponse from(ShowEntity entity) {
                 return new ShowResponse(
-                        show.getId(),
-                        show.getStatus(),
-                        show.getShowAt()
+                        entity.getId(),
+                        entity.getStatus(),
+                        entity.getShowAt()
                 );
         }
 }
