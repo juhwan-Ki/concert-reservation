@@ -1,14 +1,12 @@
 package com.gomdol.concert.concert.presentation.dto;
 
-import com.gomdol.concert.concert.domain.Concert;
-import com.gomdol.concert.concert.infra.persistence.ConcertEntity;
-import com.gomdol.concert.show.domain.Show;
-import com.gomdol.concert.venue.domain.Venue;
+import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
+import com.gomdol.concert.show.infra.query.projection.ShowProjection;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Builder
@@ -44,21 +42,33 @@ public record ConcertDetailResponse(
         LocalDate endAt,
 
         @Schema(description = "공연 리스트")
-        List<ShowResponse> showList
+        List<ShowResponse> showList,
+
+        @Schema(description = "삭제일자")
+        LocalDateTime deletedAt
 ){
-        public static ConcertDetailResponse from(ConcertEntity entity) {
-                return ConcertDetailResponse.builder()
-                        .id(entity.getId())
-                        .title(entity.getTitle())
-                        .venueName(entity.getVenue().getName())
-                        .artist(entity.getArtist())
-                        .ageRating(entity.getAgeRating() != null ? entity.getAgeRating().getDesc() : null)
-                        .runningTime(entity.getRunningTime() + "분")
-                        .description(entity.getDescription())
-                        .posterUrl(entity.getPosterUrl())
-                        .startAt(entity.getStartAt())
-                        .endAt(entity.getEndAt())
-                        .showList(entity.getShows().stream().map(ShowResponse::from).toList())
-                        .build();
+        public static ConcertDetailResponse from( ConcertDetailProjection c,  List<ShowProjection> shows) {
+                List<ShowResponse> showList = shows.stream()
+                        .map(ShowResponse::from)
+                        .toList();
+
+                return new ConcertDetailResponse(
+                        c.getId(),
+                        c.getTitle(),
+                        c.getVenueName(),
+                        c.getArtist(),
+                        c.getAgeRating(),
+                        minutesToText(c.getRunningTime()),
+                        c.getDescription(),
+                        c.getPosterUrl(),
+                        c.getStartAt(),
+                        c.getEndAt(),
+                        showList,
+                        c.getDeletedAt()
+                );
+        }
+
+        private static String minutesToText(Integer minutes) {
+                return (minutes == null) ? null : minutes + "분";
         }
 }

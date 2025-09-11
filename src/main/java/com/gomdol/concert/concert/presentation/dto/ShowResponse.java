@@ -1,10 +1,7 @@
 package com.gomdol.concert.concert.presentation.dto;
 
-import com.gomdol.concert.show.domain.Show;
-import com.gomdol.concert.show.domain.ShowStatus;
-import com.gomdol.concert.show.infra.persistence.ShowEntity;
+import com.gomdol.concert.show.infra.query.projection.ShowProjection;
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
@@ -14,16 +11,13 @@ public record ShowResponse(
         Long id,
 
         @Schema(example = "판매중", description = "공연 상태")
-        ShowStatus showStatus,
+        String showStatus,
 
         @Schema(example = "2025-08-12:12:00", description = "공연 시작 시각")
         LocalDateTime showAt
 ) {
-        public static ShowResponse from(ShowEntity entity) {
-                return new ShowResponse(
-                        entity.getId(),
-                        entity.getStatus(),
-                        entity.getShowAt()
-                );
+        public static ShowResponse from(ShowProjection show) {
+                // 필요하면 label/파생 규칙 적용
+                return new ShowResponse(show.getId(), show.getStatus(), show.getShowAt());
         }
 }
