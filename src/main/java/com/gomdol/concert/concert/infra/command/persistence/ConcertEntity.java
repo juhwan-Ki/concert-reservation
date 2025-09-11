@@ -1,10 +1,10 @@
-package com.gomdol.concert.concert.infra.persistence;
+package com.gomdol.concert.concert.infra.command.persistence;
 
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
-import com.gomdol.concert.concert.domain.AgeRating;
-import com.gomdol.concert.concert.domain.Concert;
-import com.gomdol.concert.concert.domain.ConcertStatus;
-import com.gomdol.concert.show.infra.persistence.ShowEntity;
+import com.gomdol.concert.concert.domain.model.AgeRating;
+import com.gomdol.concert.concert.domain.model.Concert;
+import com.gomdol.concert.concert.domain.model.ConcertStatus;
+import com.gomdol.concert.show.infra.command.persistence.ShowEntity;
 import com.gomdol.concert.venue.infra.persistence.VenueEntity;
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,4 +1,4 @@
-package com.gomdol.concert.concert.domain;
+package com.gomdol.concert.concert.domain.model;
 
 import lombok.AccessLevel;
 import lombok.Builder;
