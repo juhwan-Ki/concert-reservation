@@ -1,12 +1,12 @@
 package com.gomdol.concert.concert.fixture;
 
 import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.concert.domain.AgeRating;
-import com.gomdol.concert.concert.domain.Concert;
-import com.gomdol.concert.concert.domain.ConcertStatus;
-import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
+import com.gomdol.concert.concert.domain.model.AgeRating;
+import com.gomdol.concert.concert.domain.model.Concert;
+import com.gomdol.concert.concert.domain.model.ConcertStatus;
+import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
+import com.gomdol.concert.show.infra.query.projection.ShowProjection;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
-import com.gomdol.concert.concert.presentation.dto.ShowResponse;
 import com.gomdol.concert.show.domain.ShowStatus;
 import org.springframework.data.domain.Pageable;
 
@@ -18,26 +18,77 @@ import java.util.List;
 
 public class ConcertFixture {
 
-    public static ConcertDetailResponse create() {
-        return ConcertDetailResponse.builder()
+    public static ConcertDetailProjection create() {
+        return ConcertDetailStub.builder()
                 .id(1L)
                 .title("QWER 콘서트")
                 .venueName("인천 인스파이어 아레나")
                 .artist("QWER")
                 .ageRating(AgeRating.AGE_12.getDesc())
-                .runningTime("150분")
+                .runningTime(150)
                 .description("QWER 단독 콘서트......")
                 .posterUrl("https://vkasjdkfljsdafbnalkdsjk.jpg")
                 .startAt(LocalDate.of(2025,8,12))
                 .endAt(LocalDate.of(2025,8,20))
-                .showList(createShows())
                 .build();
     }
 
-    private static List<ShowResponse> createShows() {
-        List<ShowResponse> shows = new ArrayList<>();
+    public static ConcertDetailProjection beforeConcertStart() {
+        return ConcertDetailStub.builder()
+                .id(1L)
+                .title("QWER 콘서트")
+                .venueName("인천 인스파이어 아레나")
+                .artist("QWER")
+                .ageRating(AgeRating.AGE_12.getDesc())
+                .runningTime(150)
+                .description("QWER 단독 콘서트......")
+                .posterUrl("https://vkasjdkfljsdafbnalkdsjk.jpg")
+                .startAt(LocalDate.of(2025,8,16))
+                .endAt(LocalDate.of(2025,8,20))
+                .build();
+    }
+
+    public static ConcertDetailProjection afterConcertEnd() {
+        return ConcertDetailStub.builder()
+                .id(1L)
+                .title("QWER 콘서트")
+                .venueName("인천 인스파이어 아레나")
+                .artist("QWER")
+                .ageRating(AgeRating.AGE_12.getDesc())
+                .runningTime(150)
+                .description("QWER 단독 콘서트......")
+                .posterUrl("https://vkasjdkfljsdafbnalkdsjk.jpg")
+                .startAt(LocalDate.of(2025,8,12))
+                .endAt(LocalDate.of(2025,8,14))
+                .build();
+    }
+
+
+
+    public static ConcertDetailProjection deleteConcert() {
+        return ConcertDetailStub.builder()
+                .id(1L)
+                .title("QWER 콘서트")
+                .venueName("인천 인스파이어 아레나")
+                .artist("QWER")
+                .ageRating(AgeRating.AGE_12.getDesc())
+                .runningTime(150)
+                .description("QWER 단독 콘서트......")
+                .posterUrl("https://vkasjdkfljsdafbnalkdsjk.jpg")
+                .startAt(LocalDate.of(2025,8,12))
+                .endAt(LocalDate.of(2025,8,20))
+                .deletedAt(LocalDateTime.of(2025,8,21,11,0))
+                .build();
+    }
+
+    public static List<ShowProjection> createShows() {
+        List<ShowProjection> shows = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            shows.add(new ShowResponse((long)i, ShowStatus.ON_SALE, LocalDateTime.of(2025,8,i,17,0)));
+            shows.add(ShowStub.builder()
+                    .id((long)i)
+                    .status(ShowStatus.ON_SALE.getDesc())
+                    .showAt(LocalDateTime.of(2025,8,i,17,0))
+                    .build());
         }
         return shows;
     }

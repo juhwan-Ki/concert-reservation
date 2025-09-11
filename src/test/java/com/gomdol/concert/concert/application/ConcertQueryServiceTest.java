@@ -2,12 +2,12 @@ package com.gomdol.concert.concert.application;
 
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.application.service.ConcertQueryService;
-import com.gomdol.concert.concert.domain.ConcertStatus;
 import com.gomdol.concert.concert.domain.repository.ConcertQueryRepository;
 import com.gomdol.concert.concert.fixture.ConcertFixture;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import com.gomdol.concert.show.domain.ShowStatus;
+import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,10 +16,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +39,15 @@ public class ConcertQueryServiceTest {
     @Mock
     private ConcertQueryRepository concertQueryRepository;
 
+    @Mock
+    private ShowQueryRepository showQueryRepository;
+
+    @Spy
+    private Clock clock = Clock.fixed(
+            LocalDate.of(2025, 8, 15).atStartOfDay(ZoneId.systemDefault()).toInstant(),
+            ZoneId.systemDefault()
+    );
+
     @InjectMocks
     private ConcertQueryService concertQueryService;
 
@@ -44,9 +57,9 @@ public class ConcertQueryServiceTest {
     * 1. 아이디에 해당하는 값이 존재하면 DTO로 매핑해 반환한다
     * 2. 아이디에 해당하는 값이 없으면 IllegalArgumentException을 발생한다
     * 3. 일반 유저가 PUBLIC이 아닌 콘서트를 조회하면 ForbiddenException을 발생시킨다
-    * 4. deleteAt 값이 not-null인 값이 조회되면 NotFoundException을 발생한다
-    * 5. 현재 날짜가 시작일 이전이면 NotFoundException을 발생한다
-    * 6. 현재 날짜가 종료일 이후면 NotFoundException을 발생한다
+    * 4. deleteAt 값이 not-null인 값이 조회되면 IllegalArgumentException을 발생한다
+    * 5. 현재 날짜가 시작일 이전이면 IllegalArgumentException을 발생한다
+    * 6. 현재 날짜가 종료일 이후면 IllegalArgumentException을 발생한다
     * - 목록 조회
     * 1. 페이징 기본값을 적용해서 페이징이된 리스트를 반환한다
     * 2. 리스트 사이즈가 20을 넘는 값이 들어오면 20으로 고정된다
@@ -61,6 +74,7 @@ public class ConcertQueryServiceTest {
         // given
         Long id = 1L;
         when(concertQueryRepository.findPublicDetailById(id)).thenReturn(Optional.of(ConcertFixture.create()));
+        when(showQueryRepository.findShowsByConcertId(id)).thenReturn(ConcertFixture.createShows());
         // when
         ConcertDetailResponse response = concertQueryService.getConcertById(id);
         // then
@@ -80,7 +94,7 @@ public class ConcertQueryServiceTest {
                 .isNotEmpty()
                 .allSatisfy(s -> {
                     assertThat(s.id()).isNotNull();
-                    assertThat(s.showStatus()).isEqualTo(ShowStatus.ON_SALE);
+                    assertThat(s.showStatus()).isEqualTo(ShowStatus.ON_SALE.getDesc());
                     assertThat(s.showAt()).isNotNull();
                 });
     }
@@ -91,6 +105,39 @@ public class ConcertQueryServiceTest {
         // given
         Long id = 999L;
         when(concertQueryRepository.findPublicDetailById(id)).thenReturn(Optional.empty());
+        // when & then
+        assertThatThrownBy(() -> concertQueryService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
+        verify(concertQueryRepository).findPublicDetailById(id);
+    }
+
+    @Test
+    @DisplayName("deleteAt이 null이 아닌 값을 조회하면 IllegalArgumentException 예외를 던진다")
+    public void deleteAt이_null이_아닌_값을_조회하면_IllegalArgumentException_예외를_던진다() throws Exception {
+        // given
+        Long id = 1L;
+        when(concertQueryRepository.findPublicDetailById(id)).thenReturn(Optional.of(ConcertFixture.deleteConcert()));
+        // when & then
+        assertThatThrownBy(() -> concertQueryService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
+        verify(concertQueryRepository).findPublicDetailById(id);
+    }
+
+    @Test
+    @DisplayName("현재 날짜가 시작일 이전이면 IllegalArgumentException 예외를 던진다")
+    public void 현재_날짜가_시작일_이전이면_IllegalArgumentException_예외를_던진다() throws Exception {
+        // given
+        Long id = 1L;
+        when(concertQueryRepository.findPublicDetailById(id)).thenReturn(Optional.of(ConcertFixture.beforeConcertStart()));
+        // when & then
+        assertThatThrownBy(() -> concertQueryService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
+        verify(concertQueryRepository).findPublicDetailById(id);
+    }
+
+    @Test
+    @DisplayName("현재 날짜가 종료일 이후면 IllegalArgumentException 예외를 던진다")
+    public void 현재_날짜가_종료일_이후면_IllegalArgumentException_예외를_던진다() throws Exception {
+        // given
+        Long id = 1L;
+        when(concertQueryRepository.findPublicDetailById(id)).thenReturn(Optional.of(ConcertFixture.afterConcertEnd()));
         // when & then
         assertThatThrownBy(() -> concertQueryService.getConcertById(id)).isInstanceOf(IllegalArgumentException.class);
         verify(concertQueryRepository).findPublicDetailById(id);
@@ -130,7 +177,6 @@ public class ConcertQueryServiceTest {
         assertThat(passed.getPageSize()).isEqualTo(20);
     }
 
-
     @Test
     @DisplayName("마지막 페이지 요청시 빈 결과 반환된다")
     void 마지막_페이지_요청시_빈_결과_반환된다() {
@@ -161,7 +207,7 @@ public class ConcertQueryServiceTest {
     public void 키워드가_비어_있으면_findAllPublic_메소드를_호출한다(String keyword) {
         // when & then
         concertQueryService.getConcertList(PageRequest.of(0, 20), keyword);
-        verify(concertQueryRepository).findAllPublicAndKeyWord(PageRequest.of(0, 20), keyword);
+        verify(concertQueryRepository).findAllPublic(PageRequest.of(0, 20));
     }
 
     @Test

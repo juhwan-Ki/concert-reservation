@@ -2,8 +2,6 @@ package com.gomdol.concert.concert.presentation.controller;
 
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.application.service.ConcertQueryService;
-import com.gomdol.concert.concert.application.service.ConcertService;
-import com.gomdol.concert.concert.domain.Concert;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertPage;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
@@ -18,15 +16,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
 
 @Tag(name="Concert", description = "콘서트 조회,단일 조회,공연 조회")
 @RestController
