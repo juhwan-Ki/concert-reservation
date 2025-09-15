@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.presentation.controller;
 
 import com.gomdol.concert.common.exception.ApiException;
-import com.gomdol.concert.point.domain.UseType;
+import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.presentation.dto.PointHistoryPage;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
@@ -21,7 +21,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.attribute.UserPrincipal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 

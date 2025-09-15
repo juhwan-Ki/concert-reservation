@@ -2,7 +2,7 @@ package com.gomdol.concert.point.presentation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import com.gomdol.concert.point.domain.UseType;
+import com.gomdol.concert.point.domain.model.UseType;
 
 @Schema(description = "포인트 충전/사용 요청")
 public record PointRequest (
