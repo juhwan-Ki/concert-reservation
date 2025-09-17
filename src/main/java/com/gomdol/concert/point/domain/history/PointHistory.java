@@ -3,43 +3,50 @@ package com.gomdol.concert.point.domain.history;
 import com.gomdol.concert.point.domain.model.UseType;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import static com.gomdol.concert.point.domain.policy.PointPolicy.validateAmount;
+import static com.gomdol.concert.user.domain.policy.UserPolicy.validateUser;
 
 @Getter
 public class PointHistory {
-    private final Long id;
+    private Long id;
     private final String userId;
+    private final String requestId;
     private final long amount;
     private final UseType useType;
     private final long beforeBalance;
     private final long afterBalance;
-    private final LocalDateTime createdAt;
 
-    private PointHistory(Long id, String userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
+    public PointHistory(Long id, String userId, String  requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
         validateUser(userId);
+        validateRequestId(requestId);
         validateAmount(amount);
         validateBalance(beforeBalance, afterBalance);
+
         this.id = id;
         this.userId = userId;
+        this.requestId = requestId;
         this.useType = useType;
         this.amount = changeNegateAmount(amount);
         this.beforeBalance = beforeBalance;
         this.afterBalance = afterBalance;
-        this.createdAt = createdAt;
     }
 
-    public static PointHistory create(Long id, String userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
-        return new PointHistory(id, userId, amount, useType, beforeBalance, afterBalance, createdAt);
+    private PointHistory(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
+        validateUser(userId);
+        validateRequestId(requestId);
+        validateAmount(amount);
+        validateBalance(beforeBalance, afterBalance);
+
+        this.userId = userId;
+        this.requestId = requestId;
+        this.useType = useType;
+        this.amount = changeNegateAmount(amount);
+        this.beforeBalance = beforeBalance;
+        this.afterBalance = afterBalance;
     }
 
-    private void validateUser(String userId) {
-        if (userId == null || userId.length() != 36)
-            throw new IllegalArgumentException("요청한 사용자 ID가 올바른 형식이 아닙니다.");
-    }
-
-    private void validateAmount(long amount) {
-        if(amount <= 0)
-            throw new IllegalArgumentException("금액은 양수여야 합니다.");
+    public static PointHistory create(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
+        return new PointHistory(userId, requestId, amount, useType, beforeBalance, afterBalance);
     }
 
     private long changeNegateAmount(long amount) {
@@ -49,5 +56,10 @@ public class PointHistory {
     private void validateBalance(long beforeBalance, long afterBalance) {
         if(beforeBalance <= 0 || afterBalance <= 0)
             throw new IllegalArgumentException("잔액은 양수여야 합니다.");
+    }
+
+    private void validateRequestId(String requestId) {
+        if(requestId == null || requestId.isBlank() || requestId.length() != 64)
+            throw new IllegalArgumentException("requestId가 올바른 형식이 아닙니다.");
     }
 }

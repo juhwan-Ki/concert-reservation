@@ -8,6 +8,11 @@ public class PointPolicy {
     public static final long MAX_CHARGE_AMOUNT = 1_000_000L;
     public static final long MIN_USE_UNIT = 1000L;
 
+    public static void validateAmount(long amount) {
+        if(amount <= 0)
+            throw new IllegalArgumentException("충전/사용금액은 0보다 커야합니다.");
+    }
+
     public static void validateCharge(long amount) {
         if (amount > MAX_CHARGE_AMOUNT)
             throw new IllegalArgumentException("최대 충전 금액을 초과하였습니다.");
