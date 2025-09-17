@@ -40,7 +40,7 @@ public class PointController {
     })
     @GetMapping("/")
     public ResponseEntity<PointResponse> getMyPoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(new PointResponse(10000L, LocalDateTime.now()));
+        return ResponseEntity.ok(new PointResponse("", 10000L));
     }
 
     @Operation(summary = "내 포인트 충전", description = "현재 로그인한 사용자의 포인트를 충전한다.")
@@ -58,7 +58,7 @@ public class PointController {
     })
     @PostMapping("/charges")
     public ResponseEntity<PointResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me, @Valid @RequestBody PointRequest request) {
-        return ResponseEntity.ok(new PointResponse(10000L ,LocalDateTime.now()));
+        return ResponseEntity.ok(new PointResponse("" ,10000L));
     }
 
     @Operation(summary = "내 포인트 내역 조회", description = "현재 로그인한 사용자의 포인트 내역을 조회한다.")
