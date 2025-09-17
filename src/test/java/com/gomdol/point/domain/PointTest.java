@@ -104,7 +104,18 @@ public class PointTest {
         // when&then
         assertThatThrownBy(() -> point.changeBalance(chargeAmount))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("충전금액은 0보다 커야합니다.");
+                .hasMessage("충전/사용금액은 0보다 커야합니다.");
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {-1000L, -1L, 0L})
+    void 사용_금액이_양수가_아닌_경우_예외를_발생한다(long useAmount) {
+        // given
+        Point point = Point.create(FIXED_UUID, 10000L);
+        // when&then
+        assertThatThrownBy(() -> point.usePoint(useAmount))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("충전/사용금액은 0보다 커야합니다.");
     }
 
     // 최대 충전 금액은 100만원으로 한다
