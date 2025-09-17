@@ -8,14 +8,14 @@ import java.time.LocalDateTime;
 @Getter
 public class PointHistory {
     private final Long id;
-    private final Long userId;
+    private final String userId;
     private final long amount;
     private final UseType useType;
     private final long beforeBalance;
     private final long afterBalance;
     private final LocalDateTime createdAt;
 
-    private PointHistory(Long id, Long userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
+    private PointHistory(Long id, String userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
         validateUser(userId);
         validateAmount(amount);
         validateBalance(beforeBalance, afterBalance);
@@ -28,13 +28,13 @@ public class PointHistory {
         this.createdAt = createdAt;
     }
 
-    public static PointHistory create(Long id, Long userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
+    public static PointHistory create(Long id, String userId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
         return new PointHistory(id, userId, amount, useType, beforeBalance, afterBalance, createdAt);
     }
 
-    private void validateUser(Long userId) {
-        if (userId == null || userId <= 0)
-            throw new IllegalArgumentException("ID는 null이거나 0보다 작을 수 없습니다.");
+    private void validateUser(String userId) {
+        if (userId == null || userId.length() != 36)
+            throw new IllegalArgumentException("요청한 사용자 ID가 올바른 형식이 아닙니다.");
     }
 
     private void validateAmount(long amount) {

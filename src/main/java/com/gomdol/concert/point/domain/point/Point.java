@@ -5,23 +5,23 @@ import lombok.Getter;
 
 @Getter
 public class Point {
-    private final Long userId;
+    private final String userId;
     private long balance;
 
-    private Point(Long userId, Long balance) {
+    private Point(String userId, Long balance) {
         validateUser(userId);
         if (balance < 0) throw new IllegalArgumentException("초기 잔액은 음수일 수 없습니다");
         this.userId = userId;
         this.balance = balance;
     }
 
-    public static Point create(Long userId, Long balance) {
+    public static Point create(String userId, Long balance) {
         return new Point(userId, balance);
     }
 
-    private void validateUser(Long userId) {
-        if (userId == null || userId <= 0)
-            throw new IllegalArgumentException("ID는 null이거나 0보다 작을 수 없습니다.");
+    private void validateUser(String userId) {
+        if (userId == null || userId.length() != 36)
+            throw new IllegalArgumentException("요청한 사용자 ID가 올바른 형식이 아닙니다.");
     }
 
     public void usePoint(long amount) {
