@@ -3,7 +3,6 @@ package com.gomdol.concert.concert.presentation.controller;
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.application.service.ConcertQueryService;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
-import com.gomdol.concert.concert.presentation.dto.ConcertPage;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,7 +34,7 @@ public class ConcertController {
     @Operation(summary = "콘서트 조회", description = "현재 진행중인 콘서트 리스트를 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = ConcertPage.class))),
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
