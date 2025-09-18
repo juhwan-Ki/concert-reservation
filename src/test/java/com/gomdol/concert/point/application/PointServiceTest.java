@@ -1,4 +1,4 @@
-package com.gomdol.point.application;
+package com.gomdol.concert.point.application;
 
 import com.gomdol.concert.point.application.service.PointService;
 import com.gomdol.concert.point.domain.history.PointHistory;

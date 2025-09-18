@@ -1,4 +1,4 @@
-package com.gomdol.point.domain;
+package com.gomdol.concert.point.domain;
 
 import com.gomdol.concert.point.domain.point.Point;
 import org.junit.jupiter.api.Test;
