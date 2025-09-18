@@ -21,6 +21,7 @@ public class PointHistory {
         validateRequestId(requestId);
         validateAmount(amount);
         validateBalance(beforeBalance, afterBalance);
+        validateAfterBalance(afterBalance, beforeBalance, amount, useType);
 
         this.id = id;
         this.userId = userId;
@@ -36,6 +37,7 @@ public class PointHistory {
         validateRequestId(requestId);
         validateAmount(amount);
         validateBalance(beforeBalance, afterBalance);
+        validateAfterBalance(afterBalance, beforeBalance, amount, useType);
 
         this.userId = userId;
         this.requestId = requestId;
@@ -54,12 +56,25 @@ public class PointHistory {
     }
 
     private void validateBalance(long beforeBalance, long afterBalance) {
-        if(beforeBalance <= 0 || afterBalance <= 0)
+        if(beforeBalance < 0 || afterBalance < 0)
             throw new IllegalArgumentException("잔액은 양수여야 합니다.");
     }
 
     private void validateRequestId(String requestId) {
         if(requestId == null || requestId.isBlank() || requestId.length() != 64)
             throw new IllegalArgumentException("requestId가 올바른 형식이 아닙니다.");
+    }
+
+    private void validateAfterBalance(long afterBalance, long beforeBalance, long amount, UseType useType) {
+        if(useType.equals(UseType.USE))
+        {
+            if(afterBalance != beforeBalance - amount)
+                throw new IllegalStateException("잔액 계산 불일치");
+        }
+        else if(useType.equals(UseType.CHARGE))
+        {
+            if(afterBalance != beforeBalance + amount)
+                throw new IllegalStateException("잔액 계산 불일치");
+        }
     }
 }

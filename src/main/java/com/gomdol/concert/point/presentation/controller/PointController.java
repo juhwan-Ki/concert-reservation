@@ -1,8 +1,9 @@
 package com.gomdol.concert.point.presentation.controller;
 
+import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.common.exception.ApiException;
 import com.gomdol.concert.point.domain.model.UseType;
-import com.gomdol.concert.point.presentation.dto.PointHistoryPage;
+import com.gomdol.concert.point.presentation.dto.PointHistoryResponse;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,7 +22,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.attribute.UserPrincipal;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Tag(name = "Point", description = "포인트 조회/포인트 충전/포인트 내역 조회")
@@ -64,14 +64,14 @@ public class PointController {
     @Operation(summary = "내 포인트 내역 조회", description = "현재 로그인한 사용자의 포인트 내역을 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = PointHistoryPage.class))),
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/histories")
-    public ResponseEntity<PointHistoryPage> getMyPointHistories(
+    public ResponseEntity<PageResponse<PointHistoryResponse>> getMyPointHistories(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,

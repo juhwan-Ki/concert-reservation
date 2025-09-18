@@ -3,13 +3,13 @@ package com.gomdol.concert.point.application.service;
 import com.gomdol.concert.point.domain.history.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.domain.point.Point;
-import com.gomdol.concert.point.domain.policy.PointPolicy;
 import com.gomdol.concert.point.domain.repository.PointHistoryRepository;
 import com.gomdol.concert.point.domain.repository.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -23,8 +23,7 @@ public class PointService {
 
     // 포인트 조회
     public PointResponse getPoint(String userId) {
-        Point point = pointRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("포인트가 존재하지 않습니다"));
+        Point point = pointRepository.findByUserId(userId).orElseGet(() -> Point.create(userId, 0L)); // 포인트가 없으면 초기 값을 반환
         return PointResponse.fromDomain(point);
     }
 
@@ -36,7 +35,7 @@ public class PointService {
         if (existed.isPresent()) {
             PointHistory history = existed.get();
             // 이미 처리됨 → 과거 afterBalance 기반으로 응답 재구성
-            return PointResponse.fromDomain(Point.create(history.getUserId(), history.getAfterBalance()));
+            return new PointResponse(history.getUserId(), history.getAfterBalance());
         }
 
         UseType type = req.useType();
@@ -57,11 +56,16 @@ public class PointService {
         // 포인트 저장 → @Version 으로 충돌 감지
         // TODO: 현재는 동시에 들어온 요청 중 하나는 반드시 성공, 다른 건 무조건 실패
         pointRepository.save(point);
-        historyRepository.save(PointHistory.create(userId, req.requestId(), amount, type, before, after));
-
-        return PointResponse.fromDomain(point);
+        try {
+            historyRepository.save(PointHistory.create(userId, req.requestId(), amount, type, before, after));
+            return PointResponse.fromDomain(point);
+        } catch (DataIntegrityViolationException dup) {
+            // 동시에 들어온 '다른 트랜잭션'이 먼저 저장을 끝낸 케이스 → 방금 커밋된 히스토리를 재조회해 같은 응답 반환 (멱등 보장)
+            PointHistory currentHistory = historyRepository.findByUserIdAndRequestId(userId, req.requestId()).orElseThrow(() -> dup); // 정말 없다면 그대로 예외 전파
+            return PointResponse.fromDomain(Point.create(userId, currentHistory.getAfterBalance()));
+        }
     }
 
+    // TODO: 포인트 이력은 추후 개발
     // 포인트 이력 조회
-    // 포인트 이력 저장
 }
