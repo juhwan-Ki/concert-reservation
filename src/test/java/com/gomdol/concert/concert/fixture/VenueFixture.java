@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.fixture;
 
-import com.gomdol.concert.venue.domain.Venue;
+import com.gomdol.concert.venue.domain.model.Venue;
 
 public class VenueFixture {
     public static Venue create() {

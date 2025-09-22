@@ -1,4 +1,4 @@
-package com.gomdol.concert.venue.domain;
+package com.gomdol.concert.venue.domain.model;
 
 
 import lombok.Getter;

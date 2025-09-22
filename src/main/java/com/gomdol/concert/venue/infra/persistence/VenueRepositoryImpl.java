@@ -1,7 +1,7 @@
 package com.gomdol.concert.venue.infra.persistence;
 
-import com.gomdol.concert.venue.domain.Venue;
-import com.gomdol.concert.venue.domain.repository.VenueRepository;
+import com.gomdol.concert.venue.domain.model.Venue;
+import com.gomdol.concert.venue.application.port.out.VenueRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
