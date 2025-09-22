@@ -18,4 +18,9 @@ public class ShowQueryRepositoryImpl implements ShowQueryRepository {
     public List<ShowProjection> findShowsByConcertId(Long concertId) {
         return showQueryJpaRepository.findByConcertIdAndStatus(concertId, ShowStatus.SCHEDULED);
     }
+
+    @Override
+    public boolean existsById(Long showId) {
+        return showQueryJpaRepository.existsById(showId);
+    }
 }

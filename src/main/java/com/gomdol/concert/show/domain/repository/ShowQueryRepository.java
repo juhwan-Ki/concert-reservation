@@ -5,4 +5,5 @@ import java.util.List;
 
 public interface ShowQueryRepository {
     List<ShowProjection> findShowsByConcertId(Long concertId);
+    boolean existsById(Long showId);
 }
