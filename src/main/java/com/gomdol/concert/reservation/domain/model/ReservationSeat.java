@@ -10,7 +10,6 @@ public class ReservationSeat {
     private final Long reservationId;
     private final Long seatId;           // ID로만 참조
     private final Long showId;           // ID로만 참조
-//    private final Long price;
     private final ReservationSeatStatus status;
 
     private ReservationSeat(Long id, Long reservationId, Long seatId, Long showId, ReservationSeatStatus status) {
@@ -18,7 +17,6 @@ public class ReservationSeat {
         this.reservationId = reservationId;
         this.seatId = seatId;
         this.showId = showId;
-//        this.price = price;
         this.status = status;
     }
 
@@ -31,31 +29,15 @@ public class ReservationSeat {
         return new ReservationSeat(id, reservationId, seatId, showId, status);
     }
 
-    public static ReservationSeat createHoldSeat(Long reservationId, Long seatId, Long showId) {
-        return new ReservationSeat(null, reservationId, seatId, showId, ReservationSeatStatus.HOLD);
-    }
-
     // 상태 변경 메서드
     public ReservationSeat confirm() {
         validateCanConfirm();
         return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.CONFIRMED);
     }
 
-    private void validateCanConfirm() {
-        if (this.status != ReservationSeatStatus.HOLD)
-            throw new IllegalStateException("HOLD 상태의 좌석만 확정할 수 있습니다.");
-//            throw new InvalidSeatStatusException("HOLD 상태의 좌석만 확정할 수 있습니다.");
-    }
-
-    private void validateCanCancel() {
-        if (this.status == ReservationSeatStatus.CANCELED || this.status == ReservationSeatStatus.EXPIRED)
-            throw new IllegalStateException("이미 취소되거나 만료된 좌석입니다.");
-//            throw new InvalidSeatStatusException("이미 취소되거나 만료된 좌석입니다.");
-    }
-
     public ReservationSeat cancel() {
         validateCanCancel();
-        return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.CONFIRMED);
+        return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.CANCELED);
     }
 
     public ReservationSeat expire() {
@@ -63,6 +45,16 @@ public class ReservationSeat {
             return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.EXPIRED);
 
         return this;
+    }
+
+    private void validateCanConfirm() {
+        if (this.status != ReservationSeatStatus.HOLD)
+            throw new IllegalStateException("HOLD 상태의 좌석만 확정할 수 있습니다.");
+    }
+
+    private void validateCanCancel() {
+        if (this.status == ReservationSeatStatus.CANCELED || this.status == ReservationSeatStatus.EXPIRED)
+            throw new IllegalStateException("이미 취소되거나 만료된 좌석입니다.");
     }
 
     public boolean isConfirmed() { return this.status == ReservationSeatStatus.CONFIRMED; }

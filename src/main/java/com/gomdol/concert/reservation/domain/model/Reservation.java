@@ -11,12 +11,12 @@ import java.util.stream.Collectors;
 @Getter
 public class Reservation {
 
-    private final Long id;
-    private final String userId;
-    private final String reservationCode;
-    private final List<ReservationSeat> reservationSeats;
-    private final long amount;
-    private final LocalDateTime expiresAt;
+    private Long id;
+    private String userId;
+    private String reservationCode;
+    private List<ReservationSeat> reservationSeats;
+    private long amount;
+    private LocalDateTime expiresAt;
     private LocalDateTime confirmedAt;
 
     private Reservation(Long id, String userId, String reservationCode, List<ReservationSeat> reservationSeats, long amount, LocalDateTime expiresAt, LocalDateTime confirmedAt) {
@@ -24,7 +24,7 @@ public class Reservation {
         validateReservationCode(reservationCode);
         validateReservationSeat(reservationSeats);
         validateAmount(amount);
-        validateExpiresAt(expiresAt);
+//        validateExpiresAt(expiresAt);
         validateConfirmedAt(confirmedAt);
 
         this.id = id;
@@ -39,7 +39,6 @@ public class Reservation {
     // 팩토리 메서드 - 새로운 예약 생성
     public static Reservation create(String userId, String reservationCode, List<ReservationSeat> reservationSeats, long amount) {
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10); // 예약 점유 시간은 10분으로 함
-
         return new Reservation(null, userId, reservationCode, reservationSeats, amount, expiresAt, null);
     }
 
@@ -48,42 +47,30 @@ public class Reservation {
         return new Reservation(id, userId, reservationCode, reservationSeats, amount, expiresAt, confirmedAt);
     }
 
-    // 비즈니스 메서드들 (상태를 변경하지 않고 새 객체 반환)
-    public Reservation confirmPayment() {
-        validateCanConfirm();
-        List<ReservationSeat> confirmedSeats = reservationSeats.stream()
-                .map(ReservationSeat::confirm)
-                .collect(Collectors.toList());
-        LocalDateTime now = LocalDateTime.now();
-
-        return new Reservation(id, userId, reservationCode, confirmedSeats, amount, expiresAt, now);
-    }
-
-    public Reservation cancel() {
-        List<ReservationSeat> canceledSeats = reservationSeats.stream()
+    // 비즈니스 메서드
+    public void cancelSeats() {
+        validateCanCancel();
+        this.reservationSeats = reservationSeats.stream()
                 .map(ReservationSeat::cancel)
                 .collect(Collectors.toList());
-        LocalDateTime now = LocalDateTime.now();
-
-        return new Reservation(id, userId, reservationCode, canceledSeats, amount, expiresAt, now);
+        this.expiresAt = null;
+        this.confirmedAt = LocalDateTime.now();
     }
 
-    public Reservation expire() {
-        List<ReservationSeat> expiredSeats = reservationSeats.stream()
+    public void expireSeats() {
+        this.reservationSeats = reservationSeats.stream()
                 .map(ReservationSeat::expire)
                 .collect(Collectors.toList());
-        LocalDateTime now = LocalDateTime.now();
-
-        return new Reservation(id, userId, reservationCode, expiredSeats, amount, now, null);
     }
 
-    public Reservation confirmSeats(List<Long> seatIds) {
-        List<ReservationSeat> confirmedSeats = reservationSeats.stream()
+    public void confirmSeats() {
+        validateCanConfirm();
+
+        this.reservationSeats = reservationSeats.stream()
                 .map(ReservationSeat::confirm)
                 .toList();
-        LocalDateTime now = LocalDateTime.now();
-
-        return new Reservation(id, userId, reservationCode, confirmedSeats, amount, expiresAt, now);
+        this.expiresAt = null;
+        this.confirmedAt = LocalDateTime.now();
     }
 
     // 검증 메서드
@@ -98,6 +85,17 @@ public class Reservation {
             throw new IllegalStateException("모든 좌석이 HOLD 상태가 아닙니다.");
     }
 
+    private void validateCanCancel() {
+        if (isExpired())
+            throw new IllegalStateException("예약이 만료되었습니다.");
+
+        if (reservationSeats.isEmpty())
+            throw new IllegalStateException("예약할 좌석이 없습니다.");
+
+        if (allSeatsAreCancel())
+            throw new IllegalStateException("이미 취소되거나 만료된 좌석입니다.");
+    }
+
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiresAt);
     }
@@ -110,14 +108,18 @@ public class Reservation {
         return reservationSeats.stream().allMatch(ReservationSeat::isHold);
     }
 
+    public boolean allSeatsAreCancel() {
+        return reservationSeats.stream().allMatch(ReservationSeat::isCanceled);
+    }
+
     private void validateReservationCode(String reservationCode) {
         if(reservationCode == null || reservationCode.isEmpty())
-            throw new IllegalStateException("reservationCode는 반드시 존재해야합니다.");
+            throw new IllegalArgumentException("reservationCode는 반드시 존재해야합니다.");
     }
 
     private void validateReservationSeat(List<ReservationSeat> reservationSeats) {
         if(reservationSeats == null || reservationSeats.isEmpty())
-            throw new IllegalStateException("예약좌석은 반드시 존재해야합니다.");
+            throw new IllegalArgumentException("예약 좌석은 반드시 존재해야합니다.");
     }
 
     private static void validateAmount(long amount) {
@@ -125,14 +127,14 @@ public class Reservation {
             throw new IllegalArgumentException("금액은 0 이상이어야 합니다.");
     }
 
-    private static void validateExpiresAt(LocalDateTime expiresAt) {
-        if(LocalDateTime.now().isAfter(expiresAt))
-            throw new IllegalStateException("만료시간은 현재시간 보다 이전이여야 합니다.");
-    }
+//    private static void validateExpiresAt(LocalDateTime expiresAt) {
+//        if(expiresAt != null && !expiresAt.isAfter(LocalDateTime.now()))
+//            throw new IllegalStateException("만료시간은 현재시간 보다 이후여야 합니다.");
+//    }
 
     private static void validateConfirmedAt(LocalDateTime confirmedAt) {
-        if(confirmedAt != null && LocalDateTime.now().isBefore(confirmedAt))
-            throw new IllegalStateException("완료시간은 현재시간 보다 이후여야 합니다.");
+        if (confirmedAt != null && confirmedAt.isAfter(LocalDateTime.now()))
+            throw new IllegalStateException("확정 시각은 현재 시각 이전이거나 같아야 합니다.");
     }
 }
 
