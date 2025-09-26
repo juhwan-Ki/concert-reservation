@@ -3,6 +3,7 @@ package com.gomdol.concert.reservation.presentation.controller;
 import com.gomdol.concert.common.exception.ApiException;
 import com.gomdol.concert.common.security.QueuePrincipal;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
+import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
 import com.gomdol.concert.reservation.presentation.dto.*;
 import com.sun.security.auth.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -82,12 +83,14 @@ public class ReservationController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             })
     @PostMapping("/")
-    public ResponseEntity<ReservationCreateResponse> createReservation(
+    public ResponseEntity<ReservationResponse> createReservation(
             @Valid @RequestBody ReservationRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
         // return ResponseEntity.created(URI.create("/api/v1/reservations/" + id)).body(body);
+        // 대기열 토큰 생성
+
         return ResponseEntity.status(HttpStatus.CREATED).body(null);
     }
 
