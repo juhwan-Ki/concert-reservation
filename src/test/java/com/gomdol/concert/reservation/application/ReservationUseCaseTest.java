@@ -14,17 +14,20 @@ import com.gomdol.concert.venue.application.port.out.VenueSeatRepository;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ReservationUseCaseTest {
@@ -49,15 +52,18 @@ public class ReservationUseCaseTest {
 
     private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
     private static final String RESERVATION_CODE = "reservationCode";
+    private static final String FIXED_REQUEST_ID = "524910ab692b43c5b97ebadf176416cb7bf06da44f974b3bad33aca0778cebf7";
 
     @Test
     public void 좌석_1개_예약을_성공적으로_진행한다() throws Exception {
         // given
-        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID,1L, List.of(1L));
-        List<ReservationSeat> reservationSeats = List.of(ReservationSeat.of(1L,1L,1L,1L,ReservationSeatStatus.HOLD));
-        Reservation savedReservation = mockReservation(reservationSeats);
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L));
+        List<ReservationSeat> reservationSeats = mockOneReservationSeat();
+        Reservation savedReservation = mockOneSeatReservation(reservationSeats);
+        List<VenueSeat> venueSeats = mockOneVenueSeat();
+        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(1L)).thenReturn(true);
-        when(venueSeatRepository.findByIds(List.of(1L))).thenReturn(mockVenueSeats());
+        when(venueSeatRepository.findByIds(List.of(1L))).thenReturn(venueSeats);
         when(reservationSeatRepository.existsByShowIdAndIdIn(eq(1L), anyList())).thenReturn(false);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
@@ -71,15 +77,148 @@ public class ReservationUseCaseTest {
         verify(showQueryRepository).existsById(1L);
         verify(venueSeatRepository).findByIds(List.of(1L));
         verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
-        verify(reservationRepository).save(argThat(reservation ->
-                reservation.getUserId().equals(FIXED_UUID) &&
-                        reservation.getReservationCode().equals(RESERVATION_CODE) &&
-                        reservation.getAmount() == 30000
-        ));
+
+        ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+        verify(reservationRepository).save(captor.capture());
+        Reservation saved = captor.getValue();
+        assertAll(
+                () -> assertThat(saved.getUserId()).isEqualTo(command.userId()),
+                () -> assertThat(saved.getReservationCode()).isEqualTo(RESERVATION_CODE),
+                () -> assertThat(saved.getRequestId()).isEqualTo(FIXED_REQUEST_ID),
+                () -> assertThat(saved.getAmount()).isEqualTo(venueSeats.stream().mapToLong(VenueSeat::getPrice).sum()),
+                () -> assertThat(saved.getReservationSeats().size()).isEqualTo(command.seatIds().size())
+        );
+    }
+
+    @Test
+    public void 복수의_좌석_예약을_성공적으로_진행한다() throws Exception {
+        // given
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L,2L,3L));
+        List<ReservationSeat> reservationSeats = mockReservationSeats();
+        Reservation savedReservation = mockReservation(reservationSeats);
+        List<VenueSeat> venueSeats = mockVenueSeats();
+        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
+        when(showQueryRepository.existsById(1L)).thenReturn(true);
+        when(venueSeatRepository.findByIds(List.of(1L, 2L, 3L))).thenReturn(venueSeats);
+        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(1L), anyList())).thenReturn(false);
+        when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        // when
+        ReservationResponse result = reservationUseCase.reservationSeat(command);
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.reservationId()).isEqualTo(1L);
+        assertThat(result.expiredAt()).isAfter(LocalDateTime.now());
+
+        verify(showQueryRepository).existsById(1L);
+        verify(venueSeatRepository).findByIds(List.of(1L, 2L, 3L));
+        verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
+
+        ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+        verify(reservationRepository).save(captor.capture());
+        Reservation saved = captor.getValue();
+        assertAll(
+                () -> assertThat(saved.getUserId()).isEqualTo(command.userId()),
+                () -> assertThat(saved.getReservationCode()).isEqualTo(RESERVATION_CODE),
+                () -> assertThat(saved.getRequestId()).isEqualTo(FIXED_REQUEST_ID),
+                () -> assertThat(saved.getAmount()).isEqualTo(venueSeats.stream().mapToLong(VenueSeat::getPrice).sum()),
+                () -> assertThat(saved.getReservationSeats().size()).isEqualTo(command.seatIds().size())
+        );
+    }
+
+    @Test
+    public void 존재하지_않는_공연ID가_들어오면_예외를_발생시킨다 () throws Exception {
+        // given
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,999L, List.of(1L,2L,3L));
+        when(showQueryRepository.existsById(command.showId())).thenReturn(false);
+        // when && then
+        assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("공연이 존재하지");
+    }
+
+    @Test
+    public void 이미_예약된_좌석이면_에러를_발생한다() throws Exception {
+        // given
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L,2L,3L));
+        when(showQueryRepository.existsById(command.showId())).thenReturn(true);
+        when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(mockVenueSeats());
+        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(command.showId()), anyList())).thenReturn(true);
+        // when && then
+        assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("이미");
+
+        verify(reservationRepository, never()).save(any());
+
+    }
+
+    @Test
+    public void 좌석이_존재하지_않으면_에러를_발생한다() throws Exception {
+        // given
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(100L));
+        when(showQueryRepository.existsById(command.showId())).thenReturn(true);
+        when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(List.of());
+        assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("좌석이 존재하지");
+
+        verify(reservationRepository, never()).save(any());
+    }
+
+    @Test
+    public void 동일한_멱등키로_요청이들어오면_동일한_결과를_리턴한다() throws Exception {
+        // given
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L,2L,3L));
+        List<ReservationSeat> reservationSeats = mockReservationSeats();
+        Reservation savedReservation = mockReservation(reservationSeats);
+        List<VenueSeat> venueSeats = mockVenueSeats();
+        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty(), Optional.of(savedReservation));
+        when(showQueryRepository.existsById(command.showId())).thenReturn(true);
+        when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(venueSeats);
+        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(command.showId()), anyList())).thenReturn(false);
+        when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        // when
+        ReservationResponse result = reservationUseCase.reservationSeat(command);
+        ReservationResponse secondResult = reservationUseCase.reservationSeat(command);
+
+        // then
+        verify(reservationRepository, times(1)).save(any()); // 한 번만 저장
+        assertThat(secondResult.reservationId()).isEqualTo(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.reservationId()).isEqualTo(1L);
+        assertThat(result.expiredAt()).isAfter(LocalDateTime.now());
+
+        assertThat(secondResult).isNotNull();
+        assertThat(secondResult.reservationId()).isEqualTo(1L);
+        assertThat(secondResult.expiredAt()).isAfter(LocalDateTime.now());
+    }
+
+    private Reservation mockOneSeatReservation(List<ReservationSeat> reservationSeats) {
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, reservationSeats, 30000, LocalDateTime.now().plusMinutes(10), null);
     }
 
     private Reservation mockReservation(List<ReservationSeat> reservationSeats) {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, reservationSeats, 30000, LocalDateTime.now().plusMinutes(10), null);
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, reservationSeats, 30000, LocalDateTime.now().plusMinutes(10), null);
+    }
+
+    private List<ReservationSeat> mockOneReservationSeat() {
+        return List.of(ReservationSeat.of(1L,1L,1L,1L,ReservationSeatStatus.HOLD));
+    }
+
+    private List<ReservationSeat> mockReservationSeats() {
+        return List.of(
+                ReservationSeat.of(1L,1L,1L,1L,ReservationSeatStatus.HOLD),
+                ReservationSeat.of(2L,1L,2L,1L,ReservationSeatStatus.HOLD),
+                ReservationSeat.of(3L,1L,3L,1L,ReservationSeatStatus.HOLD),
+                ReservationSeat.of(4L,1L,4L,1L,ReservationSeatStatus.HOLD)
+        );
+    }
+
+    private List<VenueSeat> mockOneVenueSeat() {
+        return List.of(VenueSeat.create(1L, "A", 1, 10000L));
     }
 
     private List<VenueSeat> mockVenueSeats() {
