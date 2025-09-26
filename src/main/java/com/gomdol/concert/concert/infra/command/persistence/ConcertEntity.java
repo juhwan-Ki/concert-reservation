@@ -5,7 +5,7 @@ import com.gomdol.concert.concert.domain.model.AgeRating;
 import com.gomdol.concert.concert.domain.model.Concert;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
 import com.gomdol.concert.show.infra.command.persistence.ShowEntity;
-import com.gomdol.concert.venue.infra.persistence.VenueEntity;
+import com.gomdol.concert.venue.infra.persistence.entity.VenueEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;

@@ -1,4 +1,4 @@
-package com.gomdol.concert.venue.infra.persistence;
+package com.gomdol.concert.venue.infra.persistence.entity;
 
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
 import jakarta.persistence.*;
@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,4 +31,8 @@ public class VenueEntity extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private int capacity;
+
+    @OneToMany(mappedBy = "venue_seat", cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<VenueSeatEntity> venueSeats = new ArrayList<>();
 }

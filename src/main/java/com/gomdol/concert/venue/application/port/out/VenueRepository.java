@@ -1,6 +1,6 @@
-package com.gomdol.concert.venue.domain.repository;
+package com.gomdol.concert.venue.application.port.out;
 
-import com.gomdol.concert.venue.domain.Venue;
+import com.gomdol.concert.venue.domain.model.Venue;
 
 import java.util.Optional;
 

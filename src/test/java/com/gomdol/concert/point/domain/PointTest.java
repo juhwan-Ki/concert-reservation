@@ -1,17 +1,17 @@
 package com.gomdol.concert.point.domain;
 
+import com.gomdol.concert.common.FixedField;
 import com.gomdol.concert.point.domain.point.Point;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import static com.gomdol.concert.common.FixedField.FIXED_UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 public class PointTest {
-
-    private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
 
     @Test
     void 유효한_값으로_포인트를_생성한다() {

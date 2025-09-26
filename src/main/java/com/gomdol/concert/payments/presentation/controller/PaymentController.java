@@ -2,8 +2,8 @@ package com.gomdol.concert.payments.presentation.controller;
 
 import com.gomdol.concert.common.exception.ApiException;
 import com.gomdol.concert.common.security.QueuePrincipal;
-import com.gomdol.concert.payments.presentation.dto.ChargeRequest;
-import com.gomdol.concert.payments.presentation.dto.ChargeResponse;
+import com.gomdol.concert.payments.presentation.dto.PaymentRequest;
+import com.gomdol.concert.payments.presentation.dto.PaymentResponse;
 import com.gomdol.concert.payments.presentation.dto.RefundResponse;
 import com.sun.security.auth.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,7 +28,7 @@ public class PaymentController {
             description = "예약 ID와 금액으로 즉시 결제를 시도한다. (멱등성 지원: Idempotency-Key)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "결제 성공",
-                    content = @Content(schema = @Schema(implementation = ChargeResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
             @ApiResponse(responseCode = "400", description = "검증 실패",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
@@ -39,12 +39,13 @@ public class PaymentController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping("/")
-    public ResponseEntity<ChargeResponse> pay(
+    public ResponseEntity<PaymentResponse> pay(
             @RequestHeader(value = "Idempotencyxx-Key", required = false) String idemKey,
-            @Valid @RequestBody ChargeRequest request,
+            @Valid @RequestBody PaymentRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
+        // TODO: 예약 전 토큰이 완료되었는지 확인 필요
         return ResponseEntity.ok(null);
     }
 
