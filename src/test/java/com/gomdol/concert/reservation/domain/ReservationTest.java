@@ -7,15 +7,13 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.gomdol.concert.common.FixedField.*;
+import static com.gomdol.concert.common.ReservationTestFixture.mockReservationSeats;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThrows;
 
 public class ReservationTest {
-
-    private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
-    private static final String RESERVATION_CODE = "reservationCode";
-    private static final String FIXED_REQUEST_ID = "524910ab692b43c5b97ebadf176416cb7bf06da44f974b3bad33aca0778cebf7";
 
     @Test
     public void 좌석_상태가_HOLD인_신규_예약을_생성한다 () throws Exception {
@@ -118,24 +116,11 @@ public class ReservationTest {
         return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.HOLD), 40000L, LocalDateTime.now().plusMinutes(10), null);
     }
 
-    private Reservation mockConfirmedReservation() {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.CONFIRMED), 40000L, LocalDateTime.now().plusMinutes(10), null);
-    }
-
     private Reservation mockExpiredReservation() {
         return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.EXPIRED), 40000L, LocalDateTime.now().minusMinutes(1), null);
     }
 
     private Reservation mockCancelReservation() {
         return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.CANCELED), 40000L, LocalDateTime.now().plusMinutes(1), null);
-    }
-
-    private List<ReservationSeat> mockReservationSeats(Long reservationId, ReservationSeatStatus status) {
-        return List.of(
-                ReservationSeat.of(1L, reservationId, 1L, 1L, status),
-                ReservationSeat.of(2L, reservationId, 2L, 1L, status),
-                ReservationSeat.of(3L, reservationId, 3L, 1L, status),
-                ReservationSeat.of(4L, reservationId, 4L, 1L, status)
-        );
     }
 }

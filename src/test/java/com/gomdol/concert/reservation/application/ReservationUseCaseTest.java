@@ -5,7 +5,6 @@ import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenera
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
 import com.gomdol.concert.reservation.application.usecase.ReservationUseCase;
-import com.gomdol.concert.reservation.domain.ReservationSeatStatus;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
@@ -23,6 +22,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.gomdol.concert.common.FixedField.*;
+import static com.gomdol.concert.common.ReservationTestFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -49,10 +50,6 @@ public class ReservationUseCaseTest {
 
     @InjectMocks
     private ReservationUseCase reservationUseCase;
-
-    private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
-    private static final String RESERVATION_CODE = "reservationCode";
-    private static final String FIXED_REQUEST_ID = "524910ab692b43c5b97ebadf176416cb7bf06da44f974b3bad33aca0778cebf7";
 
     @Test
     public void 좌석_1개_예약을_성공적으로_진행한다() throws Exception {
@@ -194,38 +191,5 @@ public class ReservationUseCaseTest {
         assertThat(secondResult).isNotNull();
         assertThat(secondResult.reservationId()).isEqualTo(1L);
         assertThat(secondResult.expiredAt()).isAfter(LocalDateTime.now());
-    }
-
-    private Reservation mockOneSeatReservation(List<ReservationSeat> reservationSeats) {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, reservationSeats, 30000, LocalDateTime.now().plusMinutes(10), null);
-    }
-
-    private Reservation mockReservation(List<ReservationSeat> reservationSeats) {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, reservationSeats, 30000, LocalDateTime.now().plusMinutes(10), null);
-    }
-
-    private List<ReservationSeat> mockOneReservationSeat() {
-        return List.of(ReservationSeat.of(1L,1L,1L,1L,ReservationSeatStatus.HOLD));
-    }
-
-    private List<ReservationSeat> mockReservationSeats() {
-        return List.of(
-                ReservationSeat.of(1L,1L,1L,1L,ReservationSeatStatus.HOLD),
-                ReservationSeat.of(2L,1L,2L,1L,ReservationSeatStatus.HOLD),
-                ReservationSeat.of(3L,1L,3L,1L,ReservationSeatStatus.HOLD),
-                ReservationSeat.of(4L,1L,4L,1L,ReservationSeatStatus.HOLD)
-        );
-    }
-
-    private List<VenueSeat> mockOneVenueSeat() {
-        return List.of(VenueSeat.create(1L, "A", 1, 10000L));
-    }
-
-    private List<VenueSeat> mockVenueSeats() {
-        return List.of(
-                VenueSeat.create(1L, "A", 1, 10000L),
-                VenueSeat.create( 1L, "A", 2, 10000L),
-                VenueSeat.create( 1L, "A", 3, 10000L)
-        );
     }
 }

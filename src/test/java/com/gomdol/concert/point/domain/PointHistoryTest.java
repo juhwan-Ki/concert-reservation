@@ -1,5 +1,6 @@
 package com.gomdol.concert.point.domain;
 
+import com.gomdol.concert.common.FixedField;
 import com.gomdol.concert.point.domain.history.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import org.junit.jupiter.api.Test;
@@ -7,13 +8,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import static com.gomdol.concert.common.FixedField.FIXED_REQUEST_ID;
+import static com.gomdol.concert.common.FixedField.FIXED_UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 public class PointHistoryTest {
-
-    private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
-    private static final String FIXED_REQUEST_ID = "550e8400-e29b-41d4-a716-446655440000";
 
     @ParameterizedTest
     @NullSource
