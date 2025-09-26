@@ -35,7 +35,6 @@ public class ReservationUseCase {
      * @param command 예약 요청 정보
      * @return 예약 결과
      */
-    // TODO: 아직 락은 구현하지 않음
     @Transactional
     public ReservationResponse reservationSeat(ReservationSeatCommand command) {
         log.info("reservation request: {}", command);

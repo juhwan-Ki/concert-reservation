@@ -24,4 +24,9 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     public Optional<Reservation> findByRequestId(String requestId) {
         return reservationJpaRepository.findByRequestId(requestId).map(ReservationEntity::toDomain);
     }
+
+    @Override
+    public Optional<Reservation> findById(Long id) {
+        return reservationJpaRepository.findById(id).map(ReservationEntity::toDomain);
+    }
 }

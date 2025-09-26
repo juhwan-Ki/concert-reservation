@@ -11,12 +11,12 @@ import java.util.stream.Collectors;
 @Getter
 public class Reservation {
 
-    private Long id;
-    private String userId;
-    private String reservationCode;
-    private String requestId;
+    private final Long id;
+    private final String userId;
+    private final String reservationCode;
+    private final String requestId;
     private List<ReservationSeat> reservationSeats;
-    private long amount;
+    private final long amount;
     private LocalDateTime expiresAt;
     private LocalDateTime confirmedAt;
 
@@ -83,6 +83,9 @@ public class Reservation {
         if (reservationSeats.isEmpty())
             throw new IllegalStateException("예약할 좌석이 없습니다.");
 
+        if(isConfirmed())
+            throw new IllegalStateException("확정된 좌석이 있습니다.");
+
         if (!allSeatsAreHold())
             throw new IllegalStateException("모든 좌석이 HOLD 상태가 아닙니다.");
     }
@@ -94,12 +97,23 @@ public class Reservation {
         if (reservationSeats.isEmpty())
             throw new IllegalStateException("예약할 좌석이 없습니다.");
 
+        if(isCancel())
+            throw new IllegalStateException("이미 취소된 좌석입니다.");
+
         if (allSeatsAreCancel())
             throw new IllegalStateException("이미 취소되거나 만료된 좌석입니다.");
     }
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiresAt);
+    }
+
+    public boolean isConfirmed() {
+        return reservationSeats.stream().anyMatch(ReservationSeat::isConfirmed);
+    }
+
+    public boolean isCancel() {
+        return reservationSeats.stream().anyMatch(ReservationSeat::isCanceled);
     }
 
     public boolean allSeatsAreConfirmed() {
@@ -114,6 +128,11 @@ public class Reservation {
         return reservationSeats.stream().allMatch(ReservationSeat::isCanceled);
     }
 
+    public void validateAllSeatsPaymentEligible() {
+        validateCanConfirm();
+        validateCanCancel();
+    }
+
     private void validateReservationCode(String reservationCode) {
         if(reservationCode == null || reservationCode.isEmpty())
             throw new IllegalArgumentException("reservationCode는 반드시 존재해야합니다.");
@@ -125,8 +144,8 @@ public class Reservation {
     }
 
     private static void validateAmount(long amount) {
-        if (amount < 0)
-            throw new IllegalArgumentException("금액은 0 이상이어야 합니다.");
+        if (amount <= 0)
+            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
     }
 
 //    private static void validateExpiresAt(LocalDateTime expiresAt) {

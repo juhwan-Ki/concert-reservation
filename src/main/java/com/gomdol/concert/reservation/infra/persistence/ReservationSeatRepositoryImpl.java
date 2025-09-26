@@ -1,6 +1,7 @@
 package com.gomdol.concert.reservation.infra.persistence;
 
 import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
+import com.gomdol.concert.reservation.domain.ReservationSeatStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +15,6 @@ public class ReservationSeatRepositoryImpl implements ReservationSeatRepository 
 
     @Override
     public boolean existsByShowIdAndIdIn(Long showId, List<Long> seatIds) {
-        return false;
+        return reservationSeatJpaRepository.existsByShowIdAndIdInAndStatus(showId, seatIds, List.of(ReservationSeatStatus.HOLD, ReservationSeatStatus.CONFIRMED));
     }
 }
