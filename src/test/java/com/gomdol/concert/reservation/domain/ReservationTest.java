@@ -15,13 +15,14 @@ public class ReservationTest {
 
     private static final String FIXED_UUID = "123e4567-e89b-12d3-a456-426614174000";
     private static final String RESERVATION_CODE = "reservationCode";
+    private static final String FIXED_REQUEST_ID = "524910ab692b43c5b97ebadf176416cb7bf06da44f974b3bad33aca0778cebf7";
 
     @Test
     public void 좌석_상태가_HOLD인_신규_예약을_생성한다 () throws Exception {
         // given
         List<ReservationSeat> seats = mockReservationSeats(null, ReservationSeatStatus.HOLD);
         // when
-        Reservation reservation = Reservation.create(FIXED_UUID, RESERVATION_CODE, seats, 40000L);
+        Reservation reservation = Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, seats, 40000L);
         // then
         assertThat(reservation.getId()).isNull();
         assertThat(reservation.getReservationCode()).isEqualTo(RESERVATION_CODE);
@@ -50,7 +51,7 @@ public class ReservationTest {
     void 좌석이_없으면_에러를_발생시킨다() {
         // when & then
         assertThrows(IllegalArgumentException.class, () ->
-                Reservation.create(FIXED_UUID, RESERVATION_CODE, List.of(), 40000L)
+                Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, List.of(), 40000L)
         );
     }
 
@@ -114,19 +115,19 @@ public class ReservationTest {
     }
 
     private Reservation mockHoldReservation() {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, mockReservationSeats(1L, ReservationSeatStatus.HOLD), 40000L, LocalDateTime.now().plusMinutes(10), null);
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.HOLD), 40000L, LocalDateTime.now().plusMinutes(10), null);
     }
 
     private Reservation mockConfirmedReservation() {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, mockReservationSeats(1L, ReservationSeatStatus.CONFIRMED), 40000L, LocalDateTime.now().plusMinutes(10), null);
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.CONFIRMED), 40000L, LocalDateTime.now().plusMinutes(10), null);
     }
 
     private Reservation mockExpiredReservation() {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, mockReservationSeats(1L, ReservationSeatStatus.EXPIRED), 40000L, LocalDateTime.now().minusMinutes(1), null);
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.EXPIRED), 40000L, LocalDateTime.now().minusMinutes(1), null);
     }
 
     private Reservation mockCancelReservation() {
-        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, mockReservationSeats(1L, ReservationSeatStatus.CANCELED), 40000L, LocalDateTime.now().plusMinutes(1), null);
+        return Reservation.of(1L, FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, mockReservationSeats(1L, ReservationSeatStatus.CANCELED), 40000L, LocalDateTime.now().plusMinutes(1), null);
     }
 
     private List<ReservationSeat> mockReservationSeats(Long reservationId, ReservationSeatStatus status) {

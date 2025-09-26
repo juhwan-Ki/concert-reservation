@@ -14,12 +14,13 @@ public class Reservation {
     private Long id;
     private String userId;
     private String reservationCode;
+    private String requestId;
     private List<ReservationSeat> reservationSeats;
     private long amount;
     private LocalDateTime expiresAt;
     private LocalDateTime confirmedAt;
 
-    private Reservation(Long id, String userId, String reservationCode, List<ReservationSeat> reservationSeats, long amount, LocalDateTime expiresAt, LocalDateTime confirmedAt) {
+    private Reservation(Long id, String userId, String reservationCode, String requestId, List<ReservationSeat> reservationSeats, long amount, LocalDateTime expiresAt, LocalDateTime confirmedAt) {
         UserPolicy.validateUser(userId);
         validateReservationCode(reservationCode);
         validateReservationSeat(reservationSeats);
@@ -30,6 +31,7 @@ public class Reservation {
         this.id = id;
         this.userId = userId;
         this.reservationCode = reservationCode;
+        this.requestId = requestId;
         this.reservationSeats = reservationSeats;
         this.amount = amount;
         this.expiresAt = expiresAt;
@@ -37,14 +39,14 @@ public class Reservation {
     }
 
     // 팩토리 메서드 - 새로운 예약 생성
-    public static Reservation create(String userId, String reservationCode, List<ReservationSeat> reservationSeats, long amount) {
+    public static Reservation create(String userId, String reservationCode, String requestId, List<ReservationSeat> reservationSeats, long amount) {
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10); // 예약 점유 시간은 10분으로 함
-        return new Reservation(null, userId, reservationCode, reservationSeats, amount, expiresAt, null);
+        return new Reservation(null, userId, reservationCode, requestId, reservationSeats, amount, expiresAt, null);
     }
 
     // 기존 예약 복원 (DB에서 조회한 데이터로)
-    public static Reservation of(Long id, String userId, String reservationCode, List<ReservationSeat> reservationSeats, long amount, LocalDateTime expiresAt, LocalDateTime confirmedAt) {
-        return new Reservation(id, userId, reservationCode, reservationSeats, amount, expiresAt, confirmedAt);
+    public static Reservation of(Long id, String userId, String reservationCode, String requestId, List<ReservationSeat> reservationSeats, long amount, LocalDateTime expiresAt, LocalDateTime confirmedAt) {
+        return new Reservation(id, userId, reservationCode, requestId, reservationSeats, amount, expiresAt, confirmedAt);
     }
 
     // 비즈니스 메서드

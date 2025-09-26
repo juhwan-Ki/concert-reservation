@@ -37,6 +37,9 @@ public class ReservationSeatEntity extends CreateEntity {
     @Enumerated(EnumType.STRING)
     private ReservationSeatStatus status;
 
+    @Version
+    private long version;
+
     public void addReservation(ReservationEntity reservation) {
         this.reservation = reservation;
     }

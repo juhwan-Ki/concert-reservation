@@ -24,6 +24,9 @@ public class ReservationEntity extends BaseEntity {
     @Column(name = "reservation_code", nullable = false, unique = true)
     private String reservationCode;
 
+    @Column(name = "request_id", nullable = false, unique = true)
+    private String requestId;
+
     @Column(name = "user_id", nullable = false)
     private String userId;
 
@@ -58,6 +61,7 @@ public class ReservationEntity extends BaseEntity {
                 entity.getId(),
                 entity.getUserId(),
                 entity.getReservationCode(),
+                entity.getRequestId(),
                 domainSeats,
                 entity.getAmount(),
                 entity.getExpiresAt(),
@@ -70,6 +74,7 @@ public class ReservationEntity extends BaseEntity {
                 .id(reservation.getId())
                 .userId(reservation.getUserId())
                 .reservationCode(reservation.getReservationCode())
+                .requestId(reservation.getRequestId())
                 .amount(reservation.getAmount())
                 .expiresAt(reservation.getExpiresAt())
                 .confirmedAt(reservation.getConfirmedAt())

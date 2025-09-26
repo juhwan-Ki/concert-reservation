@@ -6,6 +6,8 @@ import com.gomdol.concert.reservation.infra.persistence.entity.ReservationEntity
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class ReservationRepositoryImpl implements ReservationRepository {
@@ -16,5 +18,10 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     public Reservation save(Reservation reservation) {
         ReservationEntity entity = reservationJpaRepository.save(ReservationEntity.fromDomain(reservation));
         return ReservationEntity.toDomain(entity);
+    }
+
+    @Override
+    public Optional<Reservation> findByRequestId(String requestId) {
+        return reservationJpaRepository.findByRequestId(requestId).map(ReservationEntity::toDomain);
     }
 }
