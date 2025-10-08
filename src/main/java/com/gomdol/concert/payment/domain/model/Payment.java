@@ -1,6 +1,6 @@
-package com.gomdol.concert.payments.domain.model;
+package com.gomdol.concert.payment.domain.model;
 
-import com.gomdol.concert.payments.domain.PaymentStatus;
+import com.gomdol.concert.payment.domain.PaymentStatus;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

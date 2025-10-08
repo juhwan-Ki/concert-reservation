@@ -1,12 +1,12 @@
 package com.gomdol.concert.payment.application;
 
-import com.gomdol.concert.payments.application.port.in.PaymentCommand;
-import com.gomdol.concert.payments.application.port.out.PaymentRepository;
-import com.gomdol.concert.payments.application.usecase.PaymentUseCase;
-import com.gomdol.concert.payments.domain.PaymentStatus;
-import com.gomdol.concert.payments.domain.model.Payment;
-import com.gomdol.concert.payments.infra.PaymentCodeGenerator;
-import com.gomdol.concert.payments.presentation.dto.PaymentResponse;
+import com.gomdol.concert.payment.application.port.in.PaymentCommand;
+import com.gomdol.concert.payment.application.port.out.PaymentRepository;
+import com.gomdol.concert.payment.application.usecase.PaymentUseCase;
+import com.gomdol.concert.payment.domain.PaymentStatus;
+import com.gomdol.concert.payment.domain.model.Payment;
+import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
+import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.point.domain.event.PointRequestedEvent;
 import com.gomdol.concert.point.domain.event.PointResponseEvent;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;

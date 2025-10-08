@@ -1,10 +1,10 @@
-package com.gomdol.concert.payments.presentation.controller;
+package com.gomdol.concert.payment.presentation.controller;
 
 import com.gomdol.concert.common.exception.ApiException;
 import com.gomdol.concert.common.security.QueuePrincipal;
-import com.gomdol.concert.payments.presentation.dto.PaymentRequest;
-import com.gomdol.concert.payments.presentation.dto.PaymentResponse;
-import com.gomdol.concert.payments.presentation.dto.RefundResponse;
+import com.gomdol.concert.payment.presentation.dto.PaymentRequest;
+import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
+import com.gomdol.concert.payment.presentation.dto.RefundResponse;
 import com.sun.security.auth.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

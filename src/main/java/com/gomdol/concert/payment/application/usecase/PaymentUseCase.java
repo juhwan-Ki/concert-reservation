@@ -1,10 +1,10 @@
-package com.gomdol.concert.payments.application.usecase;
+package com.gomdol.concert.payment.application.usecase;
 
-import com.gomdol.concert.payments.application.port.in.PaymentCommand;
-import com.gomdol.concert.payments.application.port.out.PaymentRepository;
-import com.gomdol.concert.payments.domain.model.Payment;
-import com.gomdol.concert.payments.infra.PaymentCodeGenerator;
-import com.gomdol.concert.payments.presentation.dto.PaymentResponse;
+import com.gomdol.concert.payment.application.port.in.PaymentCommand;
+import com.gomdol.concert.payment.application.port.out.PaymentRepository;
+import com.gomdol.concert.payment.domain.model.Payment;
+import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
+import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.point.domain.event.PointRequestedEvent;
 import com.gomdol.concert.point.domain.event.PointResponseEvent;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
@@ -69,30 +69,40 @@ public class PaymentUseCase {
     @Transactional
     @EventListener
     public void onPointResponse(PointResponseEvent event) {
-        Payment payment = paymentRepository.findByRequestId(event.requestId())
-                .orElseThrow(() -> new IllegalStateException("결제 내역을 찾을 수 없습니다: " + event.requestId()));
+        try {
+            Payment payment = paymentRepository.findByRequestId(event.requestId())
+                    .orElseThrow(() -> new IllegalStateException("결제 내역을 찾을 수 없습니다: " + event.requestId()));
 
-        // 이미 최종 상태면 무시
-        if (payment.isTerminal()) {
-            log.debug("이미 진행된 결제입니다. requestId={}", event.requestId());
-            return;
-        }
+            // 이미 최종 상태면 무시
+            if (payment.isTerminal()) {
+                log.debug("이미 진행된 결제입니다. requestId={}", event.requestId());
+                return;
+            }
 
-        Reservation reservation = getPaymentEligibleReservation(payment.getReservationId(), event.amount());
-        if (event.isSucceeded()) {
-            // 좌석 확정
-            reservation.confirmSeats();
-            reservationRepository.save(reservation);
-            // 결제 확정
-            payment.succeed();
-            paymentRepository.save(payment);
-        } else {
-            // 좌석 취소
-            reservation.cancelSeats();
-            reservationRepository.save(reservation);
-            // 결제 취소
-            payment.failed();
-            paymentRepository.save(payment);
+            Reservation reservation = getPaymentEligibleReservation(payment.getReservationId(), event.amount());
+            if (event.isSucceeded()) {
+                // 좌석 확정
+                reservation.confirmSeats();
+                reservationRepository.save(reservation);
+                // 결제 확정
+                payment.succeed();
+                paymentRepository.save(payment);
+                log.info("결제 완료: paymentId={}", payment.getId());
+            } else {
+                // 보상 트랜잭션
+                log.warn("결제 실패 - 보상 시작: requestId={}", event.requestId());
+                // 좌석 취소
+                reservation.cancelSeats();
+                reservationRepository.save(reservation);
+                // 결제 취소
+                payment.failed();
+                paymentRepository.save(payment);
+                log.info("보상 완료: 예약 취소됨");
+            }
+        } catch (Exception e) {
+            log.error("결제 처리 실패: requestId={}", event.requestId(), e);
+//            alertService.sendAlert(...); // TODO: 추후 슬랙 알람 같은거 추가하면 좋을듯
+            throw e;
         }
     }
 }

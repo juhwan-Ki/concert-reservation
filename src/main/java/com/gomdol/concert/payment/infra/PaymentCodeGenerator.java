@@ -1,4 +1,4 @@
-package com.gomdol.concert.payments.infra;
+package com.gomdol.concert.payment.infra;
 
 import com.gomdol.concert.common.util.CodeGenerator;
 import org.springframework.stereotype.Component;

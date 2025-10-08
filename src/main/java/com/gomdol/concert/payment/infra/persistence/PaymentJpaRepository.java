@@ -1,6 +1,6 @@
-package com.gomdol.concert.payments.infra.persistence;
+package com.gomdol.concert.payment.infra.persistence;
 
-import com.gomdol.concert.payments.infra.persistence.entitiy.PaymentEntity;
+import com.gomdol.concert.payment.infra.persistence.entitiy.PaymentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

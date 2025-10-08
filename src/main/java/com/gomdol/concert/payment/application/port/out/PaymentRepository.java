@@ -1,6 +1,6 @@
-package com.gomdol.concert.payments.application.port.out;
+package com.gomdol.concert.payment.application.port.out;
 
-import com.gomdol.concert.payments.domain.model.Payment;
+import com.gomdol.concert.payment.domain.model.Payment;
 
 import java.util.Optional;
 

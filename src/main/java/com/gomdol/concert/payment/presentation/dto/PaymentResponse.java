@@ -1,11 +1,12 @@
-package com.gomdol.concert.payments.presentation.dto;
+package com.gomdol.concert.payment.presentation.dto;
 
+import com.gomdol.concert.payment.domain.model.Payment;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
 @Schema(description = "결제 응답")
-public record ChargeResponse(
+public record PaymentResponse(
         @Schema(description = "결제 ID", example = "pay_abc123")
         Long paymentId,
 
@@ -20,4 +21,14 @@ public record ChargeResponse(
 
         @Schema(description = "결제 완료 시간", example = "2025-09-01T20:01:30")
         LocalDateTime paidAt
-) {}
+) {
+        public static PaymentResponse fromDomain(Payment payment) {
+                return new PaymentResponse(
+                        payment.getId(),
+                        payment.getReservationId(),
+                        payment.getStatus().toString(),
+                        payment.getAmount(),
+                        payment.getPaidAt()
+                );
+        }
+}

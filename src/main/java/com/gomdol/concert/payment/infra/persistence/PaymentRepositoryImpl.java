@@ -1,8 +1,8 @@
-package com.gomdol.concert.payments.infra.persistence;
+package com.gomdol.concert.payment.infra.persistence;
 
-import com.gomdol.concert.payments.application.port.out.PaymentRepository;
-import com.gomdol.concert.payments.domain.model.Payment;
-import com.gomdol.concert.payments.infra.persistence.entitiy.PaymentEntity;
+import com.gomdol.concert.payment.application.port.out.PaymentRepository;
+import com.gomdol.concert.payment.domain.model.Payment;
+import com.gomdol.concert.payment.infra.persistence.entitiy.PaymentEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

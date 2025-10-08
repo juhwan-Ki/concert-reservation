@@ -1,4 +1,4 @@
-package com.gomdol.concert.payments.application.port.in;
+package com.gomdol.concert.payment.application.port.in;
 
 public record PaymentCommand(
         Long reservationId,
