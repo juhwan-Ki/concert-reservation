@@ -34,7 +34,7 @@ public interface ConcertQueryJpaRepository extends JpaRepository<ConcertEntity, 
         and s.deletedAt is null
         order by s.showAt asc
     """)
-    List<ShowProjection> findShowsByConcertId(@Param("id") Long id);
+    List<ShowProjection> findShowsByConcertId(@Param("concertId") Long id);
 
     @Query("""
        select c

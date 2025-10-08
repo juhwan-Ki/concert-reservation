@@ -32,7 +32,7 @@ public class VenueEntity extends SoftDeleteEntity {
     @Column(nullable = false)
     private int capacity;
 
-    @OneToMany(mappedBy = "venue_seat", cascade = CascadeType.ALL,
+    @OneToMany(mappedBy = "venue", cascade = CascadeType.ALL,
             fetch = FetchType.LAZY, orphanRemoval = true)
     private List<VenueSeatEntity> venueSeats = new ArrayList<>();
 }

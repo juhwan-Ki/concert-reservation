@@ -61,7 +61,7 @@ public class ConcertEntity extends SoftDeleteEntity {
     @Column(nullable = false, name = "end_at")
     private LocalDate endAt;
 
-    @OneToMany(mappedBy = "concerts", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "concert", fetch = FetchType.LAZY)
     @OrderBy("showAt ASC") // 날짜 오름차순
     private List<ShowEntity> shows = new ArrayList<>();
 
