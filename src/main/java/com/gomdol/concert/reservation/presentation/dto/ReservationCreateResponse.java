@@ -9,9 +9,6 @@ public record ReservationCreateResponse(
         @Schema(description = "예약 ID", example = "5001")
         Long reservationId,
 
-        @Schema(description = "예약 상태", example = "HOLD")
-        String status,
-
         @Schema(description = "결제 마감 시각(만료)", example = "2025-09-01T20:00:00+09:00")
         LocalDateTime expiresAt,
 
