@@ -1,4 +1,4 @@
-package com.gomdol.concert.config.swagger;
+package com.gomdol.concert.common.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
