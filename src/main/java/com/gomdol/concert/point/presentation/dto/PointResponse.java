@@ -1,9 +1,7 @@
 package com.gomdol.concert.point.presentation.dto;
 
-import com.gomdol.concert.point.domain.point.Point;
+import com.gomdol.concert.point.domain.model.Point;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.time.LocalDateTime;
 
 @Schema(description = "포인트 응답")
 public record PointResponse(

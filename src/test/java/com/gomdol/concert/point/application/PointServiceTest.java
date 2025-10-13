@@ -1,11 +1,11 @@
 package com.gomdol.concert.point.application;
 
-import com.gomdol.concert.point.application.service.PointService;
-import com.gomdol.concert.point.domain.history.PointHistory;
+import com.gomdol.concert.point.application.usecase.PointUseCase;
+import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
-import com.gomdol.concert.point.domain.point.Point;
-import com.gomdol.concert.point.domain.repository.PointHistoryRepository;
-import com.gomdol.concert.point.domain.repository.PointRepository;
+import com.gomdol.concert.point.domain.model.Point;
+import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
+import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ public class PointServiceTest {
     private PointHistoryRepository pointHistoryRepository;
 
     @InjectMocks
-    private PointService pointService;
+    private PointUseCase pointService;
 
     @Test
     public void 포인트가_없으면_0원으로_초기화_후_반환한다() throws Exception {

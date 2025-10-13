@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.infra.persistence;
 
-import com.gomdol.concert.point.domain.point.Point;
-import com.gomdol.concert.point.domain.repository.PointRepository;
+import com.gomdol.concert.point.domain.model.Point;
+import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.infra.persistence.entity.PointEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

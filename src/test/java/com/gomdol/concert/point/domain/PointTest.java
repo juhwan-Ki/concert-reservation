@@ -1,7 +1,6 @@
 package com.gomdol.concert.point.domain;
 
-import com.gomdol.concert.common.FixedField;
-import com.gomdol.concert.point.domain.point.Point;
+import com.gomdol.concert.point.domain.model.Point;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;

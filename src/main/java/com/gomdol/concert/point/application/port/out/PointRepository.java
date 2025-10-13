@@ -1,6 +1,6 @@
-package com.gomdol.concert.point.domain.repository;
+package com.gomdol.concert.point.application.port.out;
 
-import com.gomdol.concert.point.domain.point.Point;
+import com.gomdol.concert.point.domain.model.Point;
 
 import java.util.Optional;
 

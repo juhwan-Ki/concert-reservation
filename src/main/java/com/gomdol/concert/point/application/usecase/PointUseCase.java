@@ -1,26 +1,23 @@
-package com.gomdol.concert.point.application.service;
+package com.gomdol.concert.point.application.usecase;
 
 import com.gomdol.concert.point.domain.event.PointRequestedEvent;
 import com.gomdol.concert.point.domain.event.PointResponseEvent;
-import com.gomdol.concert.point.domain.history.PointHistory;
+import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
-import com.gomdol.concert.point.domain.point.Point;
-import com.gomdol.concert.point.domain.policy.PointPolicy;
-import com.gomdol.concert.point.domain.repository.PointHistoryRepository;
-import com.gomdol.concert.point.domain.repository.PointRepository;
+import com.gomdol.concert.point.domain.model.Point;
+import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
+import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static com.gomdol.concert.point.domain.policy.PointPolicy.*;
@@ -28,7 +25,7 @@ import static com.gomdol.concert.point.domain.policy.PointPolicy.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PointService {
+public class PointUseCase {
 
     private final PointRepository pointRepository;
     private final PointHistoryRepository historyRepository;

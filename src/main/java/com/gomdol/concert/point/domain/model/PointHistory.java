@@ -1,6 +1,5 @@
-package com.gomdol.concert.point.domain.history;
+package com.gomdol.concert.point.domain.model;
 
-import com.gomdol.concert.point.domain.model.UseType;
 import lombok.Getter;
 
 import static com.gomdol.concert.point.domain.policy.PointPolicy.validateAmount;

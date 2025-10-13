@@ -1,4 +1,4 @@
-package com.gomdol.concert.point.domain.point;
+package com.gomdol.concert.point.domain.model;
 
 import lombok.Getter;
 

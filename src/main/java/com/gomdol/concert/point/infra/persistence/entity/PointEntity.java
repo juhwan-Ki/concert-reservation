@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.infra.persistence.entity;
 
 import com.gomdol.concert.common.domain.BaseEntity;
-import com.gomdol.concert.point.domain.point.Point;
+import com.gomdol.concert.point.domain.model.Point;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
