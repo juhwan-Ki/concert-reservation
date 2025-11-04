@@ -43,5 +43,5 @@ springdoc:
 queue:
   token-length: 24
   waiting-ttl-seconds: 1800   # 30분
-  entered-ttl-seconds: 180     # 3분
+  entered-ttl-seconds: 600   # 10분
   capacity: 50

@@ -1,3 +1,4 @@
+
 plugins {
 	java
 	id("org.springframework.boot") version "3.4.1"
@@ -42,10 +43,17 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 
 	// lombok
-	implementation("org.projectlombok:lombok")
+	compileOnly("org.projectlombok:lombok")
+	annotationProcessor("org.projectlombok:lombok")
+	testCompileOnly("org.projectlombok:lombok")
+	testAnnotationProcessor("org.projectlombok:lombok")
+
+	// redis
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
 	// DB
 	runtimeOnly("com.mysql:mysql-connector-j")
+
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
