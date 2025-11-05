@@ -1,6 +1,6 @@
 package com.gomdol.concert.reservation.application.usecase;
 
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatCommand;
+import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
@@ -21,7 +21,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReservationUseCase {
+public class ReservationSeatUseCase implements ReservationSeatPort {
 
     private final ReservationRepository reservationRepository;
     private final ReservationSeatRepository  reservationSeatRepository;

@@ -46,4 +46,15 @@ public class ShowEntity extends SoftDeleteEntity {
 
     @Column(nullable = false)
     private int capacity;
+
+    private ShowEntity(ConcertEntity concert, LocalDateTime showAt, ShowStatus status, int capacity) {
+        this.concert = concert;
+        this.showAt = showAt;
+        this.status = status;
+        this.capacity = capacity;
+    }
+
+    public static ShowEntity create(ConcertEntity concert, LocalDateTime showAt, ShowStatus status, int capacity) {
+        return new ShowEntity(concert, showAt, status, capacity);
+    }
 }

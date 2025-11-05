@@ -2,6 +2,7 @@ package com.gomdol.concert.venue.infra.persistence;
 
 import com.gomdol.concert.venue.application.port.out.VenueSeatRepository;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
+import com.gomdol.concert.venue.infra.persistence.entity.VenueSeatEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +16,8 @@ public class VenueSeatRepositoryImpl implements VenueSeatRepository {
 
     @Override
     public List<VenueSeat> findByIds(List<Long> seatIds) {
-        return List.of();
+        return jpaRepository.findAllById(seatIds).stream()
+                .map(VenueSeatEntity::toDomain)
+                .toList();
     }
 }

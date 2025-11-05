@@ -25,4 +25,8 @@ public record QueueTokenResponse(
         public static QueueTokenResponse fromDomain(QueueToken queueToken) {
                 return new QueueTokenResponse(queueToken.getToken(), queueToken.getStatus().name(), queueToken.getPosition(), queueToken.getTargetId(), queueToken.getTtlSeconds());
         }
+
+        public boolean isWaiting() {
+            return QueueStatus.WAITING.name().equals(status);
+        }
 }

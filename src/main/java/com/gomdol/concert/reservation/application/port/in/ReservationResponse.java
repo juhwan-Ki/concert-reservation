@@ -13,11 +13,14 @@ public record ReservationResponse(
         @Schema(description = "예약 코드", example = "reservation-asdas2135412-123412412")
         String reservationCode,
 
+        @Schema(description = "멱등키", example = "dfadsf-asdas2135412-123412412")
+        String requestId,
+
         @Schema(description = "만료 시간", example = "2025-09-11:12:10")
         LocalDateTime expiredAt
 
 ) {
         public static ReservationResponse fromDomain(Reservation reservation) {
-                return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getExpiresAt());
+                return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getRequestId(), reservation.getExpiresAt());
         }
 }

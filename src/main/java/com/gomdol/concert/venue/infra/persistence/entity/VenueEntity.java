@@ -35,4 +35,15 @@ public class VenueEntity extends SoftDeleteEntity {
     @OneToMany(mappedBy = "venue", cascade = CascadeType.ALL,
             fetch = FetchType.LAZY, orphanRemoval = true)
     private List<VenueSeatEntity> venueSeats = new ArrayList<>();
+
+    private VenueEntity(String name, String address, int capacity) {
+        this.id = null;
+        this.name = name;
+        this.address = address;
+        this.capacity = capacity;
+    }
+
+    public static VenueEntity create(String name, String address, int capacity) {
+        return new VenueEntity(name, address, capacity);
+    }
 }
