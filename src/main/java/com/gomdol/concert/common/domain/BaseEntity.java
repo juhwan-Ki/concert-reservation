@@ -14,5 +14,5 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity extends CreateEntity{
     @LastModifiedDate
     @Column(nullable = false, name = "updated_at")
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }

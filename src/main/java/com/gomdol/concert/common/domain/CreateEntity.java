@@ -15,5 +15,5 @@ import java.time.LocalDateTime;
 public abstract class CreateEntity {
     @CreatedDate
     @Column(nullable = false, name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

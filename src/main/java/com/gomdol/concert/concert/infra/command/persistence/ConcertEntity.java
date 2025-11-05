@@ -71,7 +71,7 @@ public class ConcertEntity extends SoftDeleteEntity {
     private VenueEntity venue;
 
     public static ConcertEntity create(String title, String artist, String description, int runningTime, AgeRating ageRating,
-             String thumbnailUrl, String posterUrl, ConcertStatus status, LocalDate startAt, LocalDate endAt)
+             String thumbnailUrl, String posterUrl, ConcertStatus status, LocalDate startAt, LocalDate endAt, VenueEntity venue)
     {
         return ConcertEntity.builder()
                 .title(title)
@@ -84,6 +84,7 @@ public class ConcertEntity extends SoftDeleteEntity {
                 .status(status)
                 .startAt(startAt)
                 .endAt(endAt)
+                .venue(venue)
                 .build();
     }
 

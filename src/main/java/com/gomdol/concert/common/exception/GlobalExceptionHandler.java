@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
@@ -51,6 +50,16 @@ public class GlobalExceptionHandler {
         log.warn("validation_error fields={}", e.getBindingResult().getFieldErrors());
         return ErrorResponse.of("BAD_REQUEST", "입력값이 올바르지 않습니다.", req.getRequestURI());
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)  // 404
+    public ErrorResponse handleNotFound(IllegalArgumentException e, HttpServletRequest req) {
+        log.warn("not_found userId={} reqId={} uri={} msg={}",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getMessage());
+        return ErrorResponse.of("NOT_FOUND", e.getMessage(), req.getRequestURI());
+    }
+
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR) // 500
