@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: concert-reservation-test
+  datasource:
+    url: jdbc:mysql://localhost:3306/concert_reservation?characterEncoding=UTF-8&serverTimezone=UTC
+    username: application
+    password: application
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        timezone: NORMALIZE_UTC
+        jdbc:
+          time_zone: UTC
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+queue:
+  token-length: 24
+  waiting-ttl-seconds: 1800
+  entered-ttl-seconds: 180
+  capacity: 50
+
+logging:
+  level:
+    com.gomdol.concert: DEBUG
