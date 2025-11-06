@@ -1,6 +1,6 @@
 package com.gomdol.concert.payment.application;
 
-import com.gomdol.concert.payment.application.port.in.PaymentCommand;
+import com.gomdol.concert.payment.application.port.in.PaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
 import com.gomdol.concert.payment.application.usecase.PaymentUseCase;
 import com.gomdol.concert.payment.domain.PaymentStatus;

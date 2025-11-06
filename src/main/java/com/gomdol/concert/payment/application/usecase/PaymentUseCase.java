@@ -1,6 +1,6 @@
 package com.gomdol.concert.payment.application.usecase;
 
-import com.gomdol.concert.payment.application.port.in.PaymentCommand;
+import com.gomdol.concert.payment.application.port.in.PaymentPort;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
 import com.gomdol.concert.payment.domain.model.Payment;
 import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
@@ -21,7 +21,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentUseCase {
+public class PaymentUseCase implements PaymentPort {
 
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
