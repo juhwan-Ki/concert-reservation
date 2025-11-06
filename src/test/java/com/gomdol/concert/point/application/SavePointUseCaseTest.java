@@ -1,6 +1,6 @@
 package com.gomdol.concert.point.application;
 
-import com.gomdol.concert.point.application.usecase.PointUseCase;
+import com.gomdol.concert.point.application.usecase.SavePointUseCase;
 import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.domain.model.Point;
@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class PointServiceTest {
+public class SavePointUseCaseTest {
 
     @Mock
     private PointRepository pointRepository;
@@ -36,34 +36,7 @@ public class PointServiceTest {
     private PointHistoryRepository pointHistoryRepository;
 
     @InjectMocks
-    private PointUseCase pointService;
-
-    @Test
-    public void 포인트가_없으면_0원으로_초기화_후_반환한다() throws Exception {
-        // given
-        Point point = Point.create(FIXED_UUID,0L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
-        // when
-        PointResponse response = pointService.getPoint(FIXED_UUID);
-        // then
-        assertThat(response).isEqualTo(PointResponse.fromDomain(point));
-        assertThat(response.balance()).isEqualTo(0L);
-
-        verify(pointRepository).findByUserId(FIXED_UUID);
-    }
-
-    @Test
-    public void 포인트가_존재하면_해당_포인트를_반환한다() throws Exception {
-        Point point = Point.create(FIXED_UUID,10000L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
-        // when
-        PointResponse response = pointService.getPoint(FIXED_UUID);
-        // then
-        assertThat(response).isEqualTo(PointResponse.fromDomain(point));
-        assertThat(response.balance()).isEqualTo(10000L);
-
-        verify(pointRepository).findByUserId(FIXED_UUID);
-    }
+    private SavePointUseCase savePointUseCase;
 
     @Test
     public void 충전_성공시_포인트_증가_후_이력이_저장된다() throws Exception {
@@ -77,7 +50,7 @@ public class PointServiceTest {
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
-        PointResponse response = pointService.savePoint(FIXED_UUID, req);
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
 
         // then
         assertThat(response.balance()).isEqualTo(afterBalance);
@@ -112,7 +85,7 @@ public class PointServiceTest {
                 .thenThrow(new DataIntegrityViolationException("force history save failure"));
 
         // when & then
-        assertThatThrownBy(() -> pointService.savePoint(FIXED_UUID, req))
+        assertThatThrownBy(() -> savePointUseCase.savePoint(FIXED_UUID, req))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         // 호출 순서(여기까진 수행됨): 포인트 저장 → 이력 저장(예외)
@@ -136,7 +109,7 @@ public class PointServiceTest {
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
-        PointResponse response = pointService.savePoint(FIXED_UUID, req);
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
 
         // then
         assertThat(response.balance()).isEqualTo(afterBalance);
@@ -171,7 +144,7 @@ public class PointServiceTest {
                 .thenThrow(new DataIntegrityViolationException("force history save failure"));
 
         // when & then
-        assertThatThrownBy(() -> pointService.savePoint(FIXED_UUID, req))
+        assertThatThrownBy(() -> savePointUseCase.savePoint(FIXED_UUID, req))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         // 호출 순서(여기까진 수행됨): 포인트 저장 → 이력 저장(예외)
@@ -197,14 +170,14 @@ public class PointServiceTest {
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        PointResponse first = pointService.savePoint(FIXED_UUID, req);
+        PointResponse first = savePointUseCase.savePoint(FIXED_UUID, req);
         assertThat(first.balance()).isEqualTo(10000L);
 
         // 2차 호출: 멱등키로 과거 히스토리가 조회됨 → 같은 응답 재사용
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID))
                 .thenReturn(Optional.of(PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, 10_000L, UseType.CHARGE, 0L, 10_000L)));
 
-        PointResponse second = pointService.savePoint(FIXED_UUID, req);
+        PointResponse second = savePointUseCase.savePoint(FIXED_UUID, req);
         assertThat(second.balance()).isEqualTo(10000L);
 
         // 두 번째 호출에서는 추가 포인트 변경/저장이 일어나지 않아도 되도록 검증(선택)
@@ -226,14 +199,14 @@ public class PointServiceTest {
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        PointResponse first = pointService.savePoint(FIXED_UUID, req);
+        PointResponse first = savePointUseCase.savePoint(FIXED_UUID, req);
         assertThat(first.balance()).isEqualTo(7000L);
 
         // 2차 호출: 멱등키로 과거 히스토리가 조회됨 → 같은 응답 재사용
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID))
                 .thenReturn(Optional.of(PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, 3000L, UseType.USE, 10000L, 7000L)));
 
-        PointResponse second = pointService.savePoint(FIXED_UUID, req);
+        PointResponse second = savePointUseCase.savePoint(FIXED_UUID, req);
         assertThat(second.balance()).isEqualTo(7000L);
 
         // 두 번째 호출에서는 추가 포인트 변경/저장이 일어나지 않아도 되도록 검증(선택)
