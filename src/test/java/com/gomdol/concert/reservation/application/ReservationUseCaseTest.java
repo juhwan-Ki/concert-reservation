@@ -8,7 +8,7 @@ import com.gomdol.concert.reservation.application.usecase.ReservationSeatUseCase
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import com.gomdol.concert.venue.application.port.out.VenueSeatRepository;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
 import org.junit.jupiter.api.Test;

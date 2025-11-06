@@ -2,7 +2,7 @@ package com.gomdol.concert.reservation.integration;
 
 import com.gomdol.concert.common.TestContainerConfig;
 import com.gomdol.concert.common.TestDataFactory;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
@@ -13,10 +13,9 @@ import com.gomdol.concert.reservation.infra.persistence.entity.ReservationEntity
 import com.gomdol.concert.reservation.infra.persistence.entity.ReservationSeatEntity;
 import com.gomdol.concert.reservation.infra.persistence.ReservationJpaRepository;
 import com.gomdol.concert.reservation.infra.persistence.ReservationSeatJpaRepository;
-import com.gomdol.concert.show.infra.command.persistence.ShowEntity;
+import com.gomdol.concert.show.infra.persistence.entity.ShowEntity;
 import com.gomdol.concert.venue.infra.persistence.entity.VenueEntity;
 import com.gomdol.concert.venue.infra.persistence.entity.VenueSeatEntity;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,9 +54,6 @@ class ReservationIntegrationTest {
     @Autowired
     private TestDataFactory testDataFactory;
 
-    @Autowired
-    private EntityManager entityManager;
-
     private Long testShowId;
     private Long testSeatId1;
     private Long testSeatId2;
@@ -74,9 +70,6 @@ class ReservationIntegrationTest {
         VenueSeatEntity seat2 = testDataFactory.createVenueSeat(venue, "A", 2, 10000L);
 
         ConcertEntity concert = testDataFactory.createConcert("Test Concert", venue);
-        entityManager.persist(concert);
-        entityManager.flush();
-
         ShowEntity show = testDataFactory.createShow(concert, LocalDateTime.now().plusDays(7), 100);
 
         testShowId = show.getId();
@@ -126,12 +119,10 @@ class ReservationIntegrationTest {
         assertThat(firstResponse.reservationCode()).isEqualTo(secondResponse.reservationCode());
         assertThat(firstResponse.requestId()).isEqualTo(secondResponse.requestId());
 
-        // DB에는 하나의 예약만 존재해야 함
-        List<ReservationEntity> reservations = reservationJpaRepository.findAll();
-        long countWithRequestId = reservations.stream()
-                .filter(r -> requestId.equals(r.getRequestId()))
-                .count();
-        assertThat(countWithRequestId).isEqualTo(1);
+        // Repository로 조회하여 같은 예약임을 확인
+        Reservation reservation = reservationRepository.findByRequestId(requestId).orElseThrow();
+        assertThat(reservation.getReservationCode()).isEqualTo(firstResponse.reservationCode());
+        assertThat(reservation.getRequestId()).isEqualTo(requestId);
     }
 
     @Test
