@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -32,19 +33,17 @@ public class IssueQueueTokenUseCase implements IssueQueueTokenPort {
         if(existed.isPresent())
             return QueueTokenResponse.fromDomain(existed.get());
 
+        // 현재 입장한 사용자 수 및 대기 중인 사용자 확인
+        long enteredCount = queueRepository.countEnteredActive(cmd.targetId(), Instant.now());
+        int capacity = queuePolicyProvider.capacity();
         boolean hasWaitingUsers = queueRepository.isWaiting(cmd.targetId());
-        QueueStatus status = hasWaitingUsers ? QueueStatus.WAITING : QueueStatus.ENTERED;
-        long ttlSeconds = hasWaitingUsers
-                ? queuePolicyProvider.waitingTtlSeconds()
-                : queuePolicyProvider.enteredTtlSeconds();
 
-        QueueToken token = queueRepository.issueToken(
-                cmd.targetId(),
-                cmd.userId(),
-                tokenGenerator.newToken(),
-                status,
-                ttlSeconds
-        );
+        // capacity가 꽉 찼거나 대기 중인 사용자가 있으면 WAITING
+        boolean shouldWait = enteredCount >= capacity || hasWaitingUsers;
+        QueueStatus status = shouldWait ? QueueStatus.WAITING : QueueStatus.ENTERED;
+        long ttlSeconds = shouldWait ? queuePolicyProvider.waitingTtlSeconds() : queuePolicyProvider.enteredTtlSeconds();
+
+        QueueToken token = queueRepository.issueToken(cmd.targetId(), cmd.userId(), tokenGenerator.newToken(), status, ttlSeconds);
 
         return QueueTokenResponse.fromDomain(token);
     }

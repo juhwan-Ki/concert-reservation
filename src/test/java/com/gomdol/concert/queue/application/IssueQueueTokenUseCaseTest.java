@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +52,10 @@ class IssueQueueTokenUseCaseTest {
         // 기존 토큰 없음
         given(queueRepository.findByTargetIdAndUserId(targetId, userId)).willReturn(Optional.empty());
 
+        // capacity 체크
+        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(51L);
+        given(queuePolicyProvider.capacity()).willReturn(50);
+
         // 대기 중인 사람 있음
         given(queueRepository.isWaiting(targetId)).willReturn(true);
         given(queuePolicyProvider.waitingTtlSeconds()).willReturn(waitingTtl);
@@ -58,9 +63,7 @@ class IssueQueueTokenUseCaseTest {
 
         // 토큰 발급
         QueueToken issuedToken = QueueToken.create(generatedToken, userId, targetId, QueueStatus.WAITING, 42L, waitingTtl);
-        given(queueRepository.issueToken(eq(targetId), eq(userId), eq(generatedToken),
-                eq(QueueStatus.WAITING), eq(waitingTtl)))
-                .willReturn(issuedToken);
+        given(queueRepository.issueToken(eq(targetId), eq(userId), eq(generatedToken), eq(QueueStatus.WAITING), eq(waitingTtl))).willReturn(issuedToken);
 
         // when
         QueueTokenResponse response = issueQueueTokenUseCase.issue(command);
@@ -73,6 +76,8 @@ class IssueQueueTokenUseCaseTest {
         assertThat(response.ttlSeconds()).isEqualTo(waitingTtl);
 
         verify(queueRepository).findByTargetIdAndUserId(targetId, userId);
+        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
+        verify(queuePolicyProvider).capacity();
         verify(queueRepository).isWaiting(targetId);
         verify(queuePolicyProvider).waitingTtlSeconds();
         verify(queuePolicyProvider, never()).enteredTtlSeconds();
@@ -93,6 +98,10 @@ class IssueQueueTokenUseCaseTest {
         // 기존 토큰 없음
         given(queueRepository.findByTargetIdAndUserId(targetId, userId)).willReturn(Optional.empty());
 
+        // capacity 체크 - capacity가 충분함
+        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(10L);
+        given(queuePolicyProvider.capacity()).willReturn(50);
+
         // 대기 중인 사람 없음
         given(queueRepository.isWaiting(targetId)).willReturn(false);
         given(queuePolicyProvider.enteredTtlSeconds()).willReturn(enteredTtl);
@@ -100,9 +109,7 @@ class IssueQueueTokenUseCaseTest {
 
         // 토큰 발급 (바로 입장)
         QueueToken issuedToken = QueueToken.create(generatedToken, userId, targetId, QueueStatus.ENTERED, 0L, enteredTtl);
-        given(queueRepository.issueToken(eq(targetId), eq(userId), eq(generatedToken),
-                eq(QueueStatus.ENTERED), eq(enteredTtl)))
-                .willReturn(issuedToken);
+        given(queueRepository.issueToken(eq(targetId), eq(userId), eq(generatedToken), eq(QueueStatus.ENTERED), eq(enteredTtl))).willReturn(issuedToken);
 
         // when
         QueueTokenResponse response = issueQueueTokenUseCase.issue(command);
@@ -115,6 +122,8 @@ class IssueQueueTokenUseCaseTest {
         assertThat(response.ttlSeconds()).isEqualTo(enteredTtl);
 
         verify(queueRepository).findByTargetIdAndUserId(targetId, userId);
+        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
+        verify(queuePolicyProvider).capacity();
         verify(queueRepository).isWaiting(targetId);
         verify(queuePolicyProvider).enteredTtlSeconds();
         verify(queuePolicyProvider, never()).waitingTtlSeconds();

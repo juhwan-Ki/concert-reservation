@@ -4,7 +4,7 @@ import com.gomdol.concert.queue.application.port.in.EnterQueuePort;
 import com.gomdol.concert.queue.application.port.out.QueueRepository;
 import com.gomdol.concert.queue.domain.model.QueueToken;
 import com.gomdol.concert.queue.presentation.dto.QueueTokenResponse;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

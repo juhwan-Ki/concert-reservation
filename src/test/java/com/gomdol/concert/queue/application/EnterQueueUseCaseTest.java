@@ -6,7 +6,7 @@ import com.gomdol.concert.queue.application.usecase.EnterQueueUseCase;
 import com.gomdol.concert.queue.domain.model.QueueStatus;
 import com.gomdol.concert.queue.domain.model.QueueToken;
 import com.gomdol.concert.queue.presentation.dto.QueueTokenResponse;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

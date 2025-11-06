@@ -79,7 +79,7 @@ public class DBQueueRepository implements QueueRepository {
             return Optional.of(QueueToken.create(token.getToken(), userId, targetId, QueueStatus.EXPIRED, 0L, 0L));
         }
 
-        long position = jpaRepository.countWaitingAhead(targetId, token.getId(), now);
+        long position = jpaRepository.countWaitingAhead(targetId, token.getId(), now) + 1;
         return Optional.of(QueueTokenEntity.toDomainWithPosition(token, position));
     }
 
@@ -103,7 +103,7 @@ public class DBQueueRepository implements QueueRepository {
             return Optional.of(QueueToken.create(tokenEntity.getToken(), tokenEntity.getUserId(), targetId, QueueStatus.EXPIRED, 0L, 0L));
         }
 
-        long position = jpaRepository.countWaitingAhead(targetId, tokenEntity.getId(), now);
+        long position = jpaRepository.countWaitingAhead(targetId, tokenEntity.getId(), now) + 1;
         return Optional.of(QueueTokenEntity.toDomainWithPosition(tokenEntity, position));
     }
 
