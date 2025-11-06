@@ -2,39 +2,39 @@ package com.gomdol.concert.common;
 
 import com.gomdol.concert.concert.domain.model.AgeRating;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
-import com.gomdol.concert.show.domain.ShowStatus;
-import com.gomdol.concert.show.infra.command.persistence.ShowEntity;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
+import com.gomdol.concert.concert.infra.persistence.command.ConcertJpaRepository;
+import com.gomdol.concert.show.domain.model.ShowStatus;
+import com.gomdol.concert.show.infra.persistence.entity.ShowEntity;
+import com.gomdol.concert.show.infra.persistence.command.ShowJpaRepository;
+import com.gomdol.concert.venue.infra.persistence.VenueJpaRepository;
+import com.gomdol.concert.venue.infra.persistence.VenueSeatJpaRepository;
 import com.gomdol.concert.venue.infra.persistence.entity.VenueEntity;
 import com.gomdol.concert.venue.infra.persistence.entity.VenueSeatEntity;
-import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Component
+@RequiredArgsConstructor
 public class TestDataFactory {
 
-    private final EntityManager entityManager;
-
-    public TestDataFactory(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    private final VenueJpaRepository venueRepository;
+    private final VenueSeatJpaRepository venueSeatRepository;
+    private final ConcertJpaRepository concertRepository;
+    private final ShowJpaRepository showRepository;
 
     public VenueEntity createVenue(String name, String address, int capacity) {
         VenueEntity venue = VenueEntity.create(name, address, capacity);
-        entityManager.persist(venue);
-        entityManager.flush();
-        return venue;
+        return venueRepository.save(venue);
     }
 
     public VenueSeatEntity createVenueSeat(VenueEntity venue, String rowLabel, int seatNumber, long price) {
         String seatLabel = rowLabel.toUpperCase() + "-" + seatNumber;
         VenueSeatEntity seat = VenueSeatEntity.create(seatLabel, rowLabel, seatNumber, price, venue);
-        entityManager.persist(seat);
-        entityManager.flush();
-        return seat;
+        return venueSeatRepository.save(seat);
     }
 
     public ConcertEntity createConcert(String title, VenueEntity venue) {
@@ -51,15 +51,11 @@ public class TestDataFactory {
                 LocalDate.now().plusMonths(1),
                 venue
         );
-        entityManager.persist(concert);
-        entityManager.flush();
-        return concert;
+        return concertRepository.save(concert);
     }
 
     public ShowEntity createShow(ConcertEntity concert, LocalDateTime showAt, int capacity) {
         ShowEntity show = ShowEntity.create(concert, showAt, ShowStatus.ON_SALE, capacity);
-        entityManager.persist(show);
-        entityManager.flush();
-        return show;
+        return showRepository.save(show);
     }
 }
