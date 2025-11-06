@@ -1,6 +1,6 @@
-package com.gomdol.concert.show.domain.repository;
+package com.gomdol.concert.show.application.port.out;
 
-import com.gomdol.concert.show.domain.Show;
+import com.gomdol.concert.show.domain.model.Show;
 
 import java.util.List;
 import java.util.Optional;

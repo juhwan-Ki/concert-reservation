@@ -1,4 +1,4 @@
-package com.gomdol.concert.show.infra.query.projection;
+package com.gomdol.concert.show.infra.persistence.query;
 
 import java.time.LocalDateTime;
 

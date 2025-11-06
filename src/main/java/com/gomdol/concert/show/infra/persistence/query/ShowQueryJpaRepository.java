@@ -1,8 +1,7 @@
-package com.gomdol.concert.show.infra.query.persistence;
+package com.gomdol.concert.show.infra.persistence.query;
 
-import com.gomdol.concert.show.domain.ShowStatus;
-import com.gomdol.concert.show.infra.command.persistence.ShowEntity;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.show.domain.model.ShowStatus;
+import com.gomdol.concert.show.infra.persistence.entity.ShowEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

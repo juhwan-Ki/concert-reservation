@@ -1,8 +1,8 @@
-package com.gomdol.concert.show.infra.command.persistence;
+package com.gomdol.concert.show.infra.persistence.entity;
 
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
-import com.gomdol.concert.show.domain.ShowStatus;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
+import com.gomdol.concert.show.domain.model.ShowStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.gomdol.concert.show.domain;
+package com.gomdol.concert.show.domain.model;
 
 import lombok.Getter;
 
