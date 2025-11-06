@@ -2,13 +2,14 @@ package com.gomdol.concert.concert.application.usecase;
 
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.common.util.PageableUtils;
+import com.gomdol.concert.concert.application.port.in.ConcertQueryPort;
 import com.gomdol.concert.concert.domain.policy.ConcertPolicies;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;
-import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.concert.infra.persistence.query.ConcertDetailProjection;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,8 @@ import java.util.List;
 // 조회용 서비스
 @Service
 @RequiredArgsConstructor
-public class ConcertQueryService {
+public class ConcertQueryUseCase implements ConcertQueryPort {
 
-    // TODO: 추후 port 사용하여 infra에 직접 연결하지 않도록 변경
     private final ConcertQueryRepository concertQueryRepository;
     private final ShowQueryRepository showQueryRepository;
     private final Clock clock;

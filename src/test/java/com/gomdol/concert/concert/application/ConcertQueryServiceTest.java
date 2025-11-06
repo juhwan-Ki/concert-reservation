@@ -1,13 +1,13 @@
 package com.gomdol.concert.concert.application;
 
 import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.concert.application.usecase.ConcertQueryService;
+import com.gomdol.concert.concert.application.usecase.ConcertQueryUseCase;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;
 import com.gomdol.concert.concert.fixture.ConcertFixture;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
-import com.gomdol.concert.show.domain.ShowStatus;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.domain.model.ShowStatus;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +49,7 @@ public class ConcertQueryServiceTest {
     );
 
     @InjectMocks
-    private ConcertQueryService concertQueryService;
+    private ConcertQueryUseCase concertQueryService;
 
     /*
     * 콘서트 서비스 테스트

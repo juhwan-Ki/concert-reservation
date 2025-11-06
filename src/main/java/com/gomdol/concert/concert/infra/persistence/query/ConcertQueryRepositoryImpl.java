@@ -1,11 +1,10 @@
-package com.gomdol.concert.concert.infra.query.persistence;
+package com.gomdol.concert.concert.infra.persistence.query;
 
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
-import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

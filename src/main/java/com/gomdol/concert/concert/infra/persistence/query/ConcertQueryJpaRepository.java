@@ -1,9 +1,8 @@
-package com.gomdol.concert.concert.infra.query.persistence;
+package com.gomdol.concert.concert.infra.persistence.query;
 
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
-import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,7 +1,7 @@
 package com.gomdol.concert.concert.presentation.controller;
 
 import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.concert.application.usecase.ConcertQueryService;
+import com.gomdol.concert.concert.application.usecase.ConcertQueryUseCase;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ConcertController {
 
-    private final ConcertQueryService concertQueryService;
+    private final ConcertQueryUseCase concertQueryService;
 
     // TODO: 현재는 키워드로만 조회하도록 함, 추후 장르,인기순과 같은 검색 기능 추가 필요
     @Operation(summary = "콘서트 조회", description = "현재 진행중인 콘서트 리스트를 조회한다.")

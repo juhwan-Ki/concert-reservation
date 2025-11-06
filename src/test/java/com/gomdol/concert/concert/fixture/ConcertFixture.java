@@ -4,10 +4,10 @@ import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.concert.domain.model.AgeRating;
 import com.gomdol.concert.concert.domain.model.Concert;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
-import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.concert.infra.persistence.query.ConcertDetailProjection;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
-import com.gomdol.concert.show.domain.ShowStatus;
+import com.gomdol.concert.show.domain.model.ShowStatus;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
