@@ -35,4 +35,8 @@ public class PointEntity extends BaseEntity {
     public static PointEntity fromDomain(Point point) {
         return new PointEntity(point.getUserId(),point.getBalance());
     }
+
+    public void updateBalance(long newBalance) {
+        this.balance = newBalance;
+    }
 }

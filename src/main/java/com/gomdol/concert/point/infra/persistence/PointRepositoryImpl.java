@@ -21,7 +21,16 @@ public class PointRepositoryImpl implements PointRepository {
 
     @Override
     public Point save(Point point) {
-        PointEntity entity = pointJpaRepository.save(PointEntity.fromDomain(point));
-        return PointEntity.toDomain(entity);
+        // 기존 엔티티가 있으면 업데이트, 없으면 새로 생성
+        PointEntity entity = pointJpaRepository.findById(point.getUserId())
+                .map(existing -> {
+                    // 기존 엔티티 업데이트
+                    existing.updateBalance(point.getBalance());
+                    return existing;
+                })
+                .orElse(PointEntity.fromDomain(point));
+
+        PointEntity saved = pointJpaRepository.save(entity);
+        return PointEntity.toDomain(saved);
     }
 }

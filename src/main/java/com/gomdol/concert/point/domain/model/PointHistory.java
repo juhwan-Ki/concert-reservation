@@ -15,18 +15,20 @@ public class PointHistory {
     private final long beforeBalance;
     private final long afterBalance;
 
+    // DB에서 로딩 시 사용하는 생성자 (amount는 이미 변환된 값)
     public PointHistory(Long id, String userId, String  requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
         validateUser(userId);
         validateRequestId(requestId);
-        validateAmount(amount);
+        // DB에서 로딩 시에는 amount가 이미 음수일 수 있음
         validateBalance(beforeBalance, afterBalance);
-        validateAfterBalance(afterBalance, beforeBalance, amount, useType);
+        // validateAfterBalance는 절대값으로 검증
+        validateAfterBalance(afterBalance, beforeBalance, Math.abs(amount), useType);
 
         this.id = id;
         this.userId = userId;
         this.requestId = requestId;
         this.useType = useType;
-        this.amount = changeNegateAmount(amount);
+        this.amount = amount;  // DB에서 로딩 시에는 이미 변환된 값이므로 그대로 사용
         this.beforeBalance = beforeBalance;
         this.afterBalance = afterBalance;
     }
@@ -60,19 +62,19 @@ public class PointHistory {
     }
 
     private void validateRequestId(String requestId) {
-        if(requestId == null || requestId.isBlank() || requestId.length() != 64)
+        if(requestId == null || requestId.isBlank() || requestId.length() != 36)
             throw new IllegalArgumentException("requestId가 올바른 형식이 아닙니다.");
     }
 
     private void validateAfterBalance(long afterBalance, long beforeBalance, long amount, UseType useType) {
         if(useType.equals(UseType.USE))
         {
-            if(afterBalance != beforeBalance - amount)
+            if(afterBalance != (beforeBalance - amount))
                 throw new IllegalStateException("잔액 계산 불일치");
         }
         else if(useType.equals(UseType.CHARGE))
         {
-            if(afterBalance != beforeBalance + amount)
+            if(afterBalance != (beforeBalance + amount))
                 throw new IllegalStateException("잔액 계산 불일치");
         }
     }
