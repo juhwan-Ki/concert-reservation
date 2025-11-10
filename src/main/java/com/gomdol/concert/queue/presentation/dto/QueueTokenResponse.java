@@ -1,19 +1,32 @@
 package com.gomdol.concert.queue.presentation.dto;
 
 
+import com.gomdol.concert.queue.domain.model.QueueStatus;
+import com.gomdol.concert.queue.domain.model.QueueToken;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "대기열 토큰 응답")
 public record QueueTokenResponse(
-        @Schema(example = "qtok_abc123xyz")
-        String queueToken,
+        @Schema(description = "대기열 토큰", example = "qtok_abc123xyz")
+        String token,
 
-        @Schema(example = "c1a2b3d4-e5f6-7890-1234-56789abcdef0")
-        String userId,
+        @Schema(description = "대기열 상태", example = "WAITING")
+        String status,
 
-        @Schema(example = "1523")
-        int position,
+        @Schema(description = "현재 대기 순서", example = "10")
+        Long position,
 
-        @Schema(example = "420")
-        int estimatedWaitSeconds
-) {}
+        @Schema(description = "대기열을 요청한 콘서트 or 공연 ID", example = "100")
+        Long targetId,
+
+        @Schema(description = "만료 TTL(초)", example = "50")
+        Long ttlSeconds
+) {
+        public static QueueTokenResponse fromDomain(QueueToken queueToken) {
+                return new QueueTokenResponse(queueToken.getToken(), queueToken.getStatus().name(), queueToken.getPosition(), queueToken.getTargetId(), queueToken.getTtlSeconds());
+        }
+
+        public boolean isWaiting() {
+            return QueueStatus.WAITING.name().equals(status);
+        }
+}

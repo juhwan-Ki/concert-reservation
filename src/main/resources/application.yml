@@ -31,11 +31,58 @@ spring:
 server:
   port: 8080
 
+#springdoc:
+#  api-docs:
+#    path: /v3/api-docs
+#  swagger-ui:
+#    path: /swagger-ui
+#    operationsSorter: method
+#    tagsSorter: alpha
+#    displayRequestDuration: true
+
+queue:
+  token-length: 24
+  waiting-ttl-seconds: 1800   # 30분
+  entered-ttl-seconds: 600   # 10분
+  capacity: 50
+
 springdoc:
-  api-docs:
-    path: /v3/api-docs
+  # Swagger UI 제공 경로
   swagger-ui:
-    path: /swagger-ui
-    operationsSorter: method
-    tagsSorter: alpha
-    displayRequestDuration: true
+    path: /swagger/home.html      # Swagger UI 경로 => localhost:8000/swagger-home.html
+    tags-sorter: alpha            # UI에서 태그(컨트롤러 단위 그룹) 정렬 기준 => alpha: 알파벳 순 태그 정렬, method: HTTP Method 순 정렬
+    operations-sorter: alpha      # UI에서 태그 내의 API 정렬 기준
+
+  # Swagger UI가 렌더링할 때 참고할 OpenAPI JSON 문서
+  api-docs:
+    path: /swagger/v3/api-docs/json
+    # API 도메인별로 그룹화
+    groups:
+      enabled: true
+  # 스캔 범위
+  packages-to-scan: com.roovies.concertreservation
+
+  # OpenAPI 기본 정보
+  info:
+    title: 콘서트 예약 REST API 명세서
+    description: "콘서트 예약 서비스 API 문서입니다.\n개발 환경 및 테스트용으로 제공됩니다." # API 설명
+    version: 1.0.0
+    contact:
+      name: Jihwan Lee
+
+  # OpenAPI 문서 캐시 설정
+  cache:
+    disabled: true  # true: 개발 중 변경 시 JSON 문서가 즉시 반영됨
+    # false: 문서를 캐싱하여 성능 최적화 (운영 환경에서 권장)
+
+  # API 요청 응답 기본 Content-type 설정
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8
+
+  security-schemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearer-format: JWT
+    security-requirements:
+    - bearerAuth: []

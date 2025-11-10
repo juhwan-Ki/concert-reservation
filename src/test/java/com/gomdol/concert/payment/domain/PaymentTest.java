@@ -1,7 +1,6 @@
 package com.gomdol.concert.payment.domain;
 
-import com.gomdol.concert.payments.domain.PaymentStatus;
-import com.gomdol.concert.payments.domain.model.Payment;
+import com.gomdol.concert.payment.domain.model.Payment;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

@@ -1,7 +1,7 @@
 package com.gomdol.concert.concert.presentation.dto;
 
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
-import com.gomdol.concert.concert.infra.command.persistence.ConcertEntity;
+import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;

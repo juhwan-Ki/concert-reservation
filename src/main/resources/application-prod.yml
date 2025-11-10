@@ -17,9 +17,9 @@ spring:
     properties:
       hibernate.generate_statistics: false
 
-springdoc:
-  api-docs.enabled: false
-  swagger-ui.enabled: false
+#springdoc:
+#  api-docs.enabled: false
+#  swagger-ui.enabled: false
 
 logging:
   level:

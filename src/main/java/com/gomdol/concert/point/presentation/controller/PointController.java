@@ -2,6 +2,8 @@ package com.gomdol.concert.point.presentation.controller;
 
 import com.gomdol.concert.common.dto.PageResponse;
 import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.point.application.port.in.GetPointBalancePort;
+import com.gomdol.concert.point.application.usecase.SavePointUseCase;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.presentation.dto.PointHistoryResponse;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,8 +29,12 @@ import java.time.OffsetDateTime;
 
 @Tag(name = "Point", description = "포인트 조회/포인트 충전/포인트 내역 조회")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/users/me/points")
 public class PointController {
+
+    private final GetPointBalancePort getPointBalancePort;
+    private final SavePointUseCase savePointUseCase;
 
     @Operation(summary = "내 포인트 조회", description = "현재 로그인한 사용자의 포인트 잔액을 조회한다.")
     @ApiResponses({
@@ -40,7 +47,8 @@ public class PointController {
     })
     @GetMapping("/")
     public ResponseEntity<PointResponse> getMyPoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(new PointResponse("", 10000L));
+        // TODO: 시큐리티 구현 필요
+        return ResponseEntity.ok(getPointBalancePort.getPoint(me.getName()));
     }
 
     @Operation(summary = "내 포인트 충전", description = "현재 로그인한 사용자의 포인트를 충전한다.")
@@ -57,8 +65,9 @@ public class PointController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping("/charges")
-    public ResponseEntity<PointResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me, @Valid @RequestBody PointRequest request) {
-        return ResponseEntity.ok(new PointResponse("" ,10000L));
+    public ResponseEntity<PointResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me,
+                                                     @Valid @RequestBody PointRequest request) {
+        return ResponseEntity.ok(savePointUseCase.savePoint(me.getName(), request));
     }
 
     @Operation(summary = "내 포인트 내역 조회", description = "현재 로그인한 사용자의 포인트 내역을 조회한다.")

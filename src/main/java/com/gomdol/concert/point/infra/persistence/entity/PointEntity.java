@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.infra.persistence.entity;
 
 import com.gomdol.concert.common.domain.BaseEntity;
-import com.gomdol.concert.point.domain.point.Point;
+import com.gomdol.concert.point.domain.model.Point;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -34,5 +34,9 @@ public class PointEntity extends BaseEntity {
 
     public static PointEntity fromDomain(Point point) {
         return new PointEntity(point.getUserId(),point.getBalance());
+    }
+
+    public void updateBalance(long newBalance) {
+        this.balance = newBalance;
     }
 }

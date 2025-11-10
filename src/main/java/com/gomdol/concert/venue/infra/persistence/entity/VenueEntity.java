@@ -1,6 +1,7 @@
 package com.gomdol.concert.venue.infra.persistence.entity;
 
 import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.venue.domain.model.Venue;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -32,7 +33,22 @@ public class VenueEntity extends SoftDeleteEntity {
     @Column(nullable = false)
     private int capacity;
 
-    @OneToMany(mappedBy = "venue_seat", cascade = CascadeType.ALL,
+    @OneToMany(mappedBy = "venue", cascade = CascadeType.ALL,
             fetch = FetchType.LAZY, orphanRemoval = true)
     private List<VenueSeatEntity> venueSeats = new ArrayList<>();
+
+    private VenueEntity(String name, String address, int capacity) {
+        this.id = null;
+        this.name = name;
+        this.address = address;
+        this.capacity = capacity;
+    }
+
+    public static VenueEntity create(String name, String address, int capacity) {
+        return new VenueEntity(name, address, capacity);
+    }
+
+    public static Venue toDomain(VenueEntity entity) {
+        return Venue.create(entity.getId(), entity.getName(), entity.getAddress(), entity.getCapacity());
+    }
 }

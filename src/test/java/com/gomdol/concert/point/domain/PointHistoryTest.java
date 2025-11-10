@@ -1,6 +1,6 @@
 package com.gomdol.concert.point.domain;
 
-import com.gomdol.concert.point.domain.history.PointHistory;
+import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

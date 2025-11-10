@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.infra.persistence;
 
-import com.gomdol.concert.point.domain.point.Point;
-import com.gomdol.concert.point.domain.repository.PointRepository;
+import com.gomdol.concert.point.domain.model.Point;
+import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.infra.persistence.entity.PointEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -21,7 +21,16 @@ public class PointRepositoryImpl implements PointRepository {
 
     @Override
     public Point save(Point point) {
-        PointEntity entity = pointJpaRepository.save(PointEntity.fromDomain(point));
-        return PointEntity.toDomain(entity);
+        // 기존 엔티티가 있으면 업데이트, 없으면 새로 생성
+        PointEntity entity = pointJpaRepository.findById(point.getUserId())
+                .map(existing -> {
+                    // 기존 엔티티 업데이트
+                    existing.updateBalance(point.getBalance());
+                    return existing;
+                })
+                .orElse(PointEntity.fromDomain(point));
+
+        PointEntity saved = pointJpaRepository.save(entity);
+        return PointEntity.toDomain(saved);
     }
 }

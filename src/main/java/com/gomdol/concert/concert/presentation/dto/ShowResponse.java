@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.presentation.dto;
 
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;

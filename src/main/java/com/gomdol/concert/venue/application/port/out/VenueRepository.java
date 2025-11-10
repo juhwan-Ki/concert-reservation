@@ -6,5 +6,4 @@ import java.util.Optional;
 
 public interface VenueRepository {
     Optional<Venue> findById(Long id);
-    Optional<Venue> findByConcertId(Long concertId);
 }

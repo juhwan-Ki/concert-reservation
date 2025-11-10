@@ -1,7 +1,7 @@
 package com.gomdol.concert.concert.fixture;
 
-import com.gomdol.concert.concert.infra.query.projection.ConcertDetailProjection;
-import com.gomdol.concert.show.infra.query.projection.ShowProjection;
+import com.gomdol.concert.concert.infra.persistence.query.ConcertDetailProjection;
+import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import lombok.Builder;
 
 import java.time.LocalDate;

@@ -1,14 +1,14 @@
 package com.gomdol.concert.reservation.application;
 
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatCommand;
+import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
-import com.gomdol.concert.reservation.application.usecase.ReservationUseCase;
+import com.gomdol.concert.reservation.application.usecase.ReservationSeatUseCase;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
-import com.gomdol.concert.show.domain.repository.ShowQueryRepository;
+import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import com.gomdol.concert.venue.application.port.out.VenueSeatRepository;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ public class ReservationUseCaseTest {
     ReservationCodeGenerator reservationCodeGenerator;
 
     @InjectMocks
-    private ReservationUseCase reservationUseCase;
+    private ReservationSeatUseCase reservationUseCase;
 
     @Test
     public void 좌석_1개_예약을_성공적으로_진행한다() throws Exception {

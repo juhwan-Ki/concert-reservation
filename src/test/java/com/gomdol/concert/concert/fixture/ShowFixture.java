@@ -1,7 +1,7 @@
 package com.gomdol.concert.concert.fixture;
 
-import com.gomdol.concert.show.domain.Show;
-import com.gomdol.concert.show.domain.ShowStatus;
+import com.gomdol.concert.show.domain.model.Show;
+import com.gomdol.concert.show.domain.model.ShowStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
