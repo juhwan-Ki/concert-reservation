@@ -53,7 +53,7 @@ class IssueQueueTokenUseCaseTest {
         given(queueRepository.findByTargetIdAndUserId(targetId, userId)).willReturn(Optional.empty());
 
         // capacity 체크
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(51L);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(51L);
         given(queuePolicyProvider.capacity()).willReturn(50);
 
         // 대기 중인 사람 있음
@@ -76,7 +76,7 @@ class IssueQueueTokenUseCaseTest {
         assertThat(response.ttlSeconds()).isEqualTo(waitingTtl);
 
         verify(queueRepository).findByTargetIdAndUserId(targetId, userId);
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
         verify(queuePolicyProvider).capacity();
         verify(queueRepository).isWaiting(targetId);
         verify(queuePolicyProvider).waitingTtlSeconds();
@@ -99,7 +99,7 @@ class IssueQueueTokenUseCaseTest {
         given(queueRepository.findByTargetIdAndUserId(targetId, userId)).willReturn(Optional.empty());
 
         // capacity 체크 - capacity가 충분함
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(10L);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(10L);
         given(queuePolicyProvider.capacity()).willReturn(50);
 
         // 대기 중인 사람 없음
@@ -122,7 +122,7 @@ class IssueQueueTokenUseCaseTest {
         assertThat(response.ttlSeconds()).isEqualTo(enteredTtl);
 
         verify(queueRepository).findByTargetIdAndUserId(targetId, userId);
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
         verify(queuePolicyProvider).capacity();
         verify(queueRepository).isWaiting(targetId);
         verify(queuePolicyProvider).enteredTtlSeconds();

@@ -10,17 +10,16 @@ import java.util.Optional;
 public interface QueueRepository {
     // 발급
     QueueToken issueToken(Long targetId, String userId, String token, QueueStatus status, long waitingTtlSeconds);
-    QueueToken findQueuePositionByTargetIdAndUserId(Long targetId, String userId);
     boolean isWaiting(Long targetId);
 
     // 조회
     Optional<QueueToken> findByTargetIdAndUserId(Long targetId, String userId);
     Optional<QueueToken> findByTargetIdAndToken(Long targetId, String userId);
     List<Long> findActiveTargetIds(Instant now);
+    long countEnteredActiveWithLock(Long targetId, Instant now);
 
     // 스케줄러
-    long countEnteredActive(Long targetId, Instant now);
     void save(QueueToken token);
-    List<QueueToken> findAllTargetIdAndStatusAndOffsetLimit(Long targetId, QueueStatus queueStatus, Instant now, int limit);
+    List<QueueToken> findAndLockWaitingTokens(Long targetId, Instant now, int limit);
     List<QueueToken> findAllExpiredAndOffsetLimit(Instant now, int limit);
 }

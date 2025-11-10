@@ -7,7 +7,6 @@ import com.gomdol.concert.queue.infra.persistence.entity.QueueTokenEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +21,6 @@ public class DBQueueRepository implements QueueRepository {
     private final static List<QueueStatus> queryStatus = List.of(QueueStatus.WAITING, QueueStatus.ENTERED);
 
     @Override
-    @Transactional
     public QueueToken issueToken(Long targetId, String userId, String token, QueueStatus status, long waitingTtlSeconds) {
 
         QueueTokenEntity activeToken = jpaRepository.findByTargetIdAndUserIdAndStatusIn(targetId, userId, queryStatus)
@@ -43,15 +41,6 @@ public class DBQueueRepository implements QueueRepository {
         }
 
         return QueueTokenEntity.toDomain(activeToken);
-    }
-
-    @Override
-    public QueueToken findQueuePositionByTargetIdAndUserId(Long targetId, String userId) {
-        QueueTokenEntity entity = QueueTokenEntity.create(targetId, userId, null, QueueStatus.WAITING, 0L);
-        // position 계산
-        long ahead = jpaRepository.countWaitingAhead(targetId, entity.getId(), Instant.now());
-        long position  = ahead + 1;
-        return QueueTokenEntity.toDomainWithPosition(entity, position);
     }
 
     @Override
@@ -113,7 +102,7 @@ public class DBQueueRepository implements QueueRepository {
     }
 
     @Override
-    public long countEnteredActive(Long targetId, Instant now) {
+    public long countEnteredActiveWithLock(Long targetId, Instant now) {
         return jpaRepository.countEnteredActive(targetId, now);
     }
 
@@ -123,8 +112,8 @@ public class DBQueueRepository implements QueueRepository {
     }
 
     @Override
-    public List<QueueToken> findAllTargetIdAndStatusAndOffsetLimit(Long targetId, QueueStatus queueStatus, Instant now, int limit) {
-        List<QueueTokenEntity> entities = jpaRepository.findAllTargetIdAndStatusAndOffsetLimit(targetId, queueStatus, now, limit);
+    public List<QueueToken> findAndLockWaitingTokens(Long targetId, Instant now, int limit) {
+        List<QueueTokenEntity> entities = jpaRepository.findAndLockWaitingTokens(targetId, now, limit);
         if(entities.isEmpty())
             return List.of();
         return entities.stream().map(QueueTokenEntity::toDomain).toList();
