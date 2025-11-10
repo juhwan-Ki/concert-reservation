@@ -3,10 +3,13 @@ package com.gomdol.concert.common.exception;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.PessimisticLockException;
+import jakarta.persistence.QueryTimeoutException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,17 +26,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ ObjectOptimisticLockingFailureException.class, OptimisticLockException.class })
     @ResponseStatus(HttpStatus.CONFLICT) // 409
     public ErrorResponse handleOptimistic(Exception e, HttpServletRequest req) {
-        log.warn("optimistic_lock_conflict userId={} reqId={} uri={}",
-                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"), req.getRequestURI(), e);
+        log.warn("optimistic_lock_conflict userId={} reqId={} uri={} exception={} message={}",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getClass().getSimpleName(), e.getMessage(), e);
         return ErrorResponse.of("CONFLICT", "동시에 처리되어 요청이 충돌했습니다. 같은 키로 다시 시도하세요.", req.getRequestURI());
     }
 
-    @ExceptionHandler({ PessimisticLockException.class, LockTimeoutException.class })
+    @ExceptionHandler({
+        PessimisticLockException.class,
+        LockTimeoutException.class,
+        CannotAcquireLockException.class,
+        QueryTimeoutException.class
+    })
     @ResponseStatus(HttpStatus.LOCKED) // 423
     public ErrorResponse handlePessimistic(Exception e, HttpServletRequest req) {
-        log.warn("pessimistic_lock_timeout userId={} reqId={} uri={}",
-                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"), req.getRequestURI(), e);
-        return ErrorResponse.of("LOCKED", "잠금 대기 중입니다. 잠시 후 다시 시도하세요.",req.getRequestURI());
+        log.warn("pessimistic_lock_timeout userId={} reqId={} uri={} exception={} message={}",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getClass().getSimpleName(), e.getMessage(), e);
+        return ErrorResponse.of("LOCKED", "처리 중인 요청이 있습니다. 잠시 후 다시 시도하세요.", req.getRequestURI());
+    }
+
+    @ExceptionHandler(DeadlockLoserDataAccessException.class)
+    @ResponseStatus(HttpStatus.CONFLICT) // 409
+    public ErrorResponse handleDeadlock(DeadlockLoserDataAccessException e, HttpServletRequest req) {
+        log.error("deadlock_detected userId={} reqId={} uri={} message={}",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getMessage(), e);
+        return ErrorResponse.of("DEADLOCK", "요청 처리 중 충돌이 발생했습니다. 다시 시도하세요.", req.getRequestURI());
     }
 
     @ExceptionHandler(IllegalStateException.class) // 잔액부족 등

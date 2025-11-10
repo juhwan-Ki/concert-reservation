@@ -31,7 +31,7 @@ public class PointEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePointUseRequested(PointRequestedEvent event) {
         try {
-            Point point = pointRepository.findByUserId(event.userId())
+            Point point = pointRepository.findByUserIdWithLock(event.userId())
                     .orElseGet(() -> Point.create(event.userId(), 0L));
 
             if(event.useType() != UseType.USE)
@@ -82,7 +82,7 @@ public class PointEventHandler {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePointChargeRequested(PointRequestedEvent event) {
         try {
-            Point point = pointRepository.findByUserId(event.userId())
+            Point point = pointRepository.findByUserIdWithLock(event.userId())
                     .orElseGet(() -> Point.create(event.userId(), 0L));
 
             if(event.useType() != UseType.CHARGE)

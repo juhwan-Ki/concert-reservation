@@ -15,14 +15,14 @@ public class PointRepositoryImpl implements PointRepository {
     private final PointJpaRepository pointJpaRepository;
 
     @Override
-    public Optional<Point> findByUserId(String userId) {
-       return pointJpaRepository.findById(userId).map(PointEntity::toDomain);
+    public Optional<Point> findByUserIdWithLock(String userId) {
+       return pointJpaRepository.findByUserIdWithLock(userId).map(PointEntity::toDomain);
     }
 
     @Override
     public Point save(Point point) {
         // 기존 엔티티가 있으면 업데이트, 없으면 새로 생성
-        PointEntity entity = pointJpaRepository.findById(point.getUserId())
+        PointEntity entity = pointJpaRepository.findByUserIdWithLock(point.getUserId())
                 .map(existing -> {
                     // 기존 엔티티 업데이트
                     existing.updateBalance(point.getBalance());

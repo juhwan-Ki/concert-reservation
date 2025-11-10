@@ -8,6 +8,8 @@ import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
 import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.PessimisticLockException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,6 +17,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Optional;
@@ -46,7 +49,7 @@ public class SavePointUseCaseTest {
         long beforeBalance = point.getBalance();
         long afterBalance = beforeBalance + req.amount();
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
@@ -78,7 +81,7 @@ public class SavePointUseCaseTest {
         Point point = Point.create(FIXED_UUID,0L);
 
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // pointHistory 저장 시점에 제약 위반/에러가 난 것처럼 예외 발생 유도
         when(pointHistoryRepository.save(any(PointHistory.class)))
@@ -105,7 +108,7 @@ public class SavePointUseCaseTest {
         long beforeBalance = point.getBalance();
         long afterBalance = beforeBalance - req.amount();
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
@@ -137,7 +140,7 @@ public class SavePointUseCaseTest {
         Point point = Point.create(FIXED_UUID,10000L);
 
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // pointHistory 저장 시점에 제약 위반/에러가 난 것처럼 예외 발생 유도
         when(pointHistoryRepository.save(any(PointHistory.class)))
@@ -165,7 +168,7 @@ public class SavePointUseCaseTest {
                 .thenReturn(Optional.empty()); // 첫 호출 시
 
         Point point = Point.create(FIXED_UUID, 0L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -194,7 +197,7 @@ public class SavePointUseCaseTest {
                 .thenReturn(Optional.empty()); // 첫 호출 시
 
         Point point = Point.create(FIXED_UUID, 10000L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -212,5 +215,168 @@ public class SavePointUseCaseTest {
         // 두 번째 호출에서는 추가 포인트 변경/저장이 일어나지 않아도 되도록 검증(선택)
         verify(pointRepository, times(1)).save(any(Point.class));
         verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
+    }
+
+    // ========== 재시도 로직 테스트 ==========
+
+    @Test
+    public void PessimisticLockException_발생시_재시도_후_성공한다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 5000L, UseType.CHARGE);
+        Point point = Point.create(FIXED_UUID, 10000L);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // 첫 번째 시도: PessimisticLockException 발생
+        // 두 번째 시도: 성공
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID))
+                .thenThrow(new PessimisticLockException("Lock timeout"))
+                .thenReturn(Optional.of(point));
+
+        when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // when
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
+
+        // then
+        assertThat(response.balance()).isEqualTo(15000L);
+        assertThat(response.userId()).isEqualTo(FIXED_UUID);
+
+        // 2번 조회 시도 (1번 실패, 1번 성공)
+        verify(pointRepository, times(2)).findByUserIdWithLock(FIXED_UUID);
+        // 1번 저장
+        verify(pointRepository, times(1)).save(any(Point.class));
+        verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
+    }
+
+    @Test
+    public void LockTimeoutException_발생시_재시도_후_성공한다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 3000L, UseType.USE);
+        Point point = Point.create(FIXED_UUID, 10000L);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // 첫 번째, 두 번째 시도: LockTimeoutException 발생
+        // 세 번째 시도: 성공
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID))
+                .thenThrow(new LockTimeoutException("Lock wait timeout exceeded"))
+                .thenThrow(new LockTimeoutException("Lock wait timeout exceeded"))
+                .thenReturn(Optional.of(point));
+
+        when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // when
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
+
+        // then
+        assertThat(response.balance()).isEqualTo(7000L);
+        assertThat(response.userId()).isEqualTo(FIXED_UUID);
+
+        // 3번 조회 시도 (2번 실패, 1번 성공)
+        verify(pointRepository, times(3)).findByUserIdWithLock(FIXED_UUID);
+        verify(pointRepository, times(1)).save(any(Point.class));
+        verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
+    }
+
+    @Test
+    public void CannotAcquireLockException_발생시_재시도_후_성공한다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 2000L, UseType.CHARGE);
+        Point point = Point.create(FIXED_UUID, 5000L);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // 첫 번째 시도: CannotAcquireLockException
+        // 두 번째 시도: 성공
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID))
+                .thenThrow(new CannotAcquireLockException("Cannot acquire lock"))
+                .thenReturn(Optional.of(point));
+
+        when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // when
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
+
+        // then
+        assertThat(response.balance()).isEqualTo(7000L);
+
+        verify(pointRepository, times(2)).findByUserIdWithLock(FIXED_UUID);
+        verify(pointRepository, times(1)).save(any(Point.class));
+        verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
+    }
+
+    @Test
+    public void 최대_재시도_횟수_초과시_예외를_던진다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 1000L, UseType.CHARGE);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // 3번 모두 실패
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID))
+                .thenThrow(new PessimisticLockException("Lock timeout"))
+                .thenThrow(new PessimisticLockException("Lock timeout"))
+                .thenThrow(new PessimisticLockException("Lock timeout"));
+
+        // when & then
+        assertThatThrownBy(() -> savePointUseCase.savePoint(FIXED_UUID, req))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("처리 중인 요청이 너무 많습니다");
+
+        // 3번 조회 시도 (모두 실패)
+        verify(pointRepository, times(3)).findByUserIdWithLock(FIXED_UUID);
+        // 저장까지 가지 못함
+        verify(pointRepository, never()).save(any(Point.class));
+        verify(pointHistoryRepository, never()).save(any(PointHistory.class));
+    }
+
+    @Test
+    public void 첫_시도에서_성공하면_재시도하지_않는다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 8000L, UseType.CHARGE);
+        Point point = Point.create(FIXED_UUID, 2000L);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // 첫 번째 시도에서 바로 성공
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
+
+        when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // when
+        PointResponse response = savePointUseCase.savePoint(FIXED_UUID, req);
+
+        // then
+        assertThat(response.balance()).isEqualTo(10000L);
+
+        // 1번만 조회 (재시도 없음)
+        verify(pointRepository, times(1)).findByUserIdWithLock(FIXED_UUID);
+        verify(pointRepository, times(1)).save(any(Point.class));
+        verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
+    }
+
+    @Test
+    public void 락_예외와_일반_예외가_섞여도_재시도는_락_예외만_처리한다() throws Exception {
+        // given
+        PointRequest req = new PointRequest(FIXED_REQUEST_ID, 1000L, UseType.CHARGE);
+
+        when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
+
+        // IllegalArgumentException은 재시도 대상이 아니므로 바로 실패해야 함
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenThrow(new IllegalArgumentException("Invalid user"));
+
+        // when & then
+        assertThatThrownBy(() -> savePointUseCase.savePoint(FIXED_UUID, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid user");
+
+        // 재시도 없이 1번만 시도
+        verify(pointRepository, times(1)).findByUserIdWithLock(FIXED_UUID);
+        verify(pointRepository, never()).save(any(Point.class));
     }
 }

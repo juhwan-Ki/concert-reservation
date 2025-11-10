@@ -118,7 +118,7 @@ class PaymentIntegrationTest {
         reservationAmount = reservation.getAmount();
 
         // 포인트 충전 (결제를 위한 잔액)
-        Point point = pointRepository.findByUserId(FIXED_UUID)
+        Point point = pointRepository.findByUserIdWithLock(FIXED_UUID)
                 .orElseGet(() -> Point.create(FIXED_UUID, 0L));
         point.changeBalance(200000L);
         pointRepository.save(point);
