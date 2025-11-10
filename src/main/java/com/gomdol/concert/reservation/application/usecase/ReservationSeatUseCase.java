@@ -2,6 +2,7 @@ package com.gomdol.concert.reservation.application.usecase;
 
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
+import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
 import com.gomdol.concert.reservation.domain.model.Reservation;
@@ -28,6 +29,7 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
     private final VenueSeatRepository venueSeatRepository;
     private final ShowQueryRepository showQueryRepository;
     private final ReservationCodeGenerator reservationCodeGenerator;
+    private final ReservationPolicyProvider policyProvider;
 
     /**
      * 좌석 예약 (홀드)
@@ -42,6 +44,9 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
         Optional<Reservation> existed = reservationRepository.findByRequestId(command.requestId());
         if(existed.isPresent())
             return ReservationResponse.fromDomain(existed.get());
+        // 좌석 수 제한 검증 추가
+        if (command.seatIds().size() > policyProvider.maxSeatsPerReservation())
+            throw new IllegalArgumentException(String.format("최대 %d개 좌석까지 예약 가능합니다.", policyProvider.maxSeatsPerReservation()));
         // 해당 공연이 존재하는지 확인
         if(!showQueryRepository.existsById(command.showId()))
             throw new IllegalArgumentException("공연이 존재하지 않습니다.");
@@ -53,7 +58,8 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
         long amount = venueSeats.stream().mapToLong(VenueSeat::getPrice).sum();
         String reservationCode = reservationCodeGenerator.newReservationCode();
         List<ReservationSeat> seats = venueSeats.stream().map(seat -> ReservationSeat.create(null, seat.getId(), command.showId())).toList();
-        Reservation savedReservation = reservationRepository.save(Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount));
+        Reservation savedReservation = reservationRepository.save(
+                Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount, policyProvider.holdMinutes()));
 
         log.info("좌석 예약 완료 - reservationId: {}, reservationCode: {}, holdExpiresAt: {}", savedReservation.getId(), savedReservation.getReservationCode(), savedReservation.getExpiresAt());
         return ReservationResponse.fromDomain(savedReservation);

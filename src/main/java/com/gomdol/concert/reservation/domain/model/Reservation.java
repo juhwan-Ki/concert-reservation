@@ -39,8 +39,8 @@ public class Reservation {
     }
 
     // 팩토리 메서드 - 새로운 예약 생성
-    public static Reservation create(String userId, String reservationCode, String requestId, List<ReservationSeat> reservationSeats, long amount) {
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(10); // 예약 점유 시간은 10분으로 함
+    public static Reservation create(String userId, String reservationCode, String requestId, List<ReservationSeat> reservationSeats, long amount, int holdMinutes) {
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(holdMinutes); // 예약 점유 시간은 10분으로 함
         return new Reservation(null, userId, reservationCode, requestId, reservationSeats, amount, expiresAt, null);
     }
 
