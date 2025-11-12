@@ -21,6 +21,11 @@ public class ReservationConfig {
             public int maxSeatsPerReservation() {
                 return props.maxSeatsPerReservation();
             }
+
+            @Override
+            public int maxRetryCount() {
+                return props.maxRetryCount();
+            }
         };
     }
 }
