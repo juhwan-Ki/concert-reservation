@@ -4,7 +4,6 @@ import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.Re
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
-import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
 import com.gomdol.concert.reservation.application.usecase.ReservationSeatUseCase;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
@@ -37,10 +36,7 @@ import static org.mockito.Mockito.*;
 public class ReservationUseCaseTest {
 
     @Mock
-    private ReservationRepository reservationRepository; // 살제 예약이 완료된 정보들을 가지고 있는?
-
-    @Mock
-    private ReservationSeatRepository reservationSeatRepository; // 예약 좌석에 대한 repository
+    private ReservationRepository reservationRepository;
 
     @Mock
     private VenueSeatRepository venueSeatRepository;
@@ -69,7 +65,6 @@ public class ReservationUseCaseTest {
         when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(1L)).thenReturn(true);
         when(venueSeatRepository.findByIds(List.of(1L))).thenReturn(venueSeats);
-        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(1L), anyList())).thenReturn(false);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
         // when
@@ -81,7 +76,7 @@ public class ReservationUseCaseTest {
 
         verify(showQueryRepository).existsById(1L);
         verify(venueSeatRepository).findByIds(List.of(1L));
-        verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
+//        verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
 
         ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
         verify(reservationRepository).save(captor.capture());
@@ -107,7 +102,6 @@ public class ReservationUseCaseTest {
         when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(1L)).thenReturn(true);
         when(venueSeatRepository.findByIds(List.of(1L, 2L, 3L))).thenReturn(venueSeats);
-        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(1L), anyList())).thenReturn(false);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
         // when
@@ -119,7 +113,6 @@ public class ReservationUseCaseTest {
 
         verify(showQueryRepository).existsById(1L);
         verify(venueSeatRepository).findByIds(List.of(1L, 2L, 3L));
-        verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
 
         ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
         verify(reservationRepository).save(captor.capture());
@@ -149,16 +142,19 @@ public class ReservationUseCaseTest {
     public void 이미_예약된_좌석이면_에러를_발생한다() throws Exception {
         // given
         given(policyProvider.maxSeatsPerReservation()).willReturn(4);
+        given(policyProvider.holdMinutes()).willReturn(10);
         ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L,2L,3L));
+        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(command.showId())).thenReturn(true);
         when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(mockVenueSeats());
-        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(command.showId()), anyList())).thenReturn(true);
+        when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
+        when(reservationRepository.save(any(Reservation.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate key"));
+
         // when && then
         assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("이미");
-
-        verify(reservationRepository, never()).save(any());
+                .hasMessageContaining("이미 선택된 좌석입니다.");
 
     }
 
@@ -185,12 +181,13 @@ public class ReservationUseCaseTest {
         List<ReservationSeat> reservationSeats = mockReservationSeats();
         Reservation savedReservation = mockReservation(reservationSeats);
         List<VenueSeat> venueSeats = mockVenueSeats();
+
         when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty(), Optional.of(savedReservation));
         when(showQueryRepository.existsById(command.showId())).thenReturn(true);
         when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(venueSeats);
-        when(reservationSeatRepository.existsByShowIdAndIdIn(eq(command.showId()), anyList())).thenReturn(false);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+
         // when
         ReservationResponse result = reservationUseCase.reservationSeat(command);
         ReservationResponse secondResult = reservationUseCase.reservationSeat(command);
