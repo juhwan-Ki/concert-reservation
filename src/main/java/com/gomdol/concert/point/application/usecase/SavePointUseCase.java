@@ -1,6 +1,5 @@
 package com.gomdol.concert.point.application.usecase;
 
-import com.gomdol.concert.point.application.port.in.SavePointPort;
 import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.domain.model.Point;
@@ -8,27 +7,29 @@ import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
 import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
-import jakarta.persistence.LockTimeoutException;
-import jakarta.persistence.PessimisticLockException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+/**
+ * 포인트 충전/사용 비즈니스 로직
+ * - 재시도 로직은 PointFacade에서 처리
+ * - 각 호출마다 새로운 트랜잭션으로 실행 (REQUIRES_NEW)
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SavePointUseCase implements SavePointPort {
+public class SavePointUseCase {
 
     private final PointRepository pointRepository;
     private final PointHistoryRepository historyRepository;
 
-    // 포인트 충전/사용 (재시도 로직 포함)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PointResponse savePoint(String userId, PointRequest req) {
         String requestId = req.requestId();
 
@@ -40,30 +41,6 @@ public class SavePointUseCase implements SavePointPort {
             return new PointResponse(history.getUserId(), history.getAfterBalance());
         }
 
-        // 재시도 로직 (비관적 락 타임아웃 대응)
-        int maxRetries = 3;
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                return executeSavePoint(userId, req);
-            } catch (PessimisticLockException | LockTimeoutException | CannotAcquireLockException e) {
-                if (attempt == maxRetries - 1) {
-                    log.error("포인트 저장 실패 - 최대 재시도 횟수 초과 userId={} requestId={} attempt={}", userId, requestId, attempt + 1, e);
-                    throw new IllegalStateException("처리 중인 요청이 너무 많습니다. 잠시 후 다시 시도하세요.", e);
-                }
-                log.warn("포인트 저장 재시도 중 userId={} requestId={} attempt={}/{} exception={}", userId, requestId, attempt + 1, maxRetries, e.getClass().getSimpleName());
-
-                try {
-                    Thread.sleep(100 * (attempt + 1));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("재시도 중 인터럽트 발생", ie);
-                }
-            }
-        }
-        throw new IllegalStateException("포인트 저장 실패");
-    }
-
-    private PointResponse executeSavePoint(String userId, PointRequest req) {
         UseType type = req.useType();
         long amount = req.amount();
 
