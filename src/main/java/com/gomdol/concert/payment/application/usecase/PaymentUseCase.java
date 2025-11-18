@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -21,20 +23,22 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentUseCase implements PaymentPort {
+public class PaymentUseCase {
 
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentCodeGenerator codeGenerator;
 
-    @Transactional
-    public PaymentResponse processPayment(PaymentCommand command) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public PaymentResponse processPayment(PaymentPort.PaymentCommand command) {
         log.info("payment request: {}", command);
+
         // 멱등성 체크
         Optional<Payment> existed = paymentRepository.findByRequestId(command.requestId());
         if (existed.isPresent())
             return PaymentResponse.fromDomain(existed.get());
+
         // 결제 준비
         if(command.amount() <= 0)
             throw new IllegalArgumentException("결제 금액은 0보다 커야합니다");
