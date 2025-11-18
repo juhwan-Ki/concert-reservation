@@ -10,5 +10,6 @@ import org.springframework.validation.annotation.Validated;
 public record ReservationProperties(
         @Min(1) @Max(30) int holdMinutes,
         @Min(1) @Max(10) int maxSeatsPerReservation,
-        @Min(1) @Max(10) int maxRetryCount
+        @Min(1) @Max(10) int maxRetryCount,
+        @Min(100) @Max(10000) int retryDelayMillis
 ) {}

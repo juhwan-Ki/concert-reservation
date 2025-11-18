@@ -6,7 +6,6 @@ import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
-import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.domain.ReservationSeatStatus;
 import com.gomdol.concert.reservation.infra.persistence.ReservationJpaRepository;
 import com.gomdol.concert.reservation.infra.persistence.ReservationSeatJpaRepository;
@@ -271,32 +270,25 @@ class ReservationConcurrencyTest {
         String requestId = UUID.randomUUID().toString(); // 동일한 requestId
         List<Long> seatIds = List.of(testSeatIds.get(0), testSeatIds.get(1));
         ReservationSeatCommand command = new ReservationSeatCommand(userId, requestId, testShowId, seatIds);
-
-        // when: 첫 번째 요청을 먼저 처리
-        ReservationResponse firstResponse = reservationSeatPort.reservationSeat(command);
-        log.info("첫 번째 예약 완료: reservationCode={}", firstResponse.reservationCode());
-
-        // then: 첫 번째 요청 후 나머지 9개의 재시도 요청이 동시에 들어옴 (현실적인 시나리오)
-        int retryCount = 9;
-        ExecutorService executorService = Executors.newFixedThreadPool(retryCount);
-        CountDownLatch latch = new CountDownLatch(retryCount);
+        int threadCount = 10;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
 
         AtomicInteger successCount = new AtomicInteger(0);
         List<String> reservationCodes = new CopyOnWriteArrayList<>();
-        reservationCodes.add(firstResponse.reservationCode());
 
-        for (int i = 0; i < retryCount; i++) {
+        for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
                     latch.countDown();
-                    latch.await(); // 모든 재시도가 동시에 시작되도록 대기
+                    latch.await(); // 동시에 시작되도록 대기
 
                     ReservationResponse response = reservationSeatPort.reservationSeat(command);
                     successCount.incrementAndGet();
                     reservationCodes.add(response.reservationCode());
-                    log.info("재시도 예약 성공: reservationCode={}", response.reservationCode());
+                    log.info("예약 성공: reservationCode={}", response.reservationCode());
                 } catch (Exception e) {
-                    log.error("재시도 예약 실패: error={}", e.getMessage());
+                    log.error("예약 실패: error={}", e.getMessage());
                 }
             });
         }
@@ -304,13 +296,12 @@ class ReservationConcurrencyTest {
         executorService.shutdown();
         executorService.awaitTermination(30, TimeUnit.SECONDS);
 
-        // then: 모든 재시도가 성공하고, 동일한 예약 코드를 반환해야 함 (멱등성)
-        log.info("총 성공: {}, 예약 코드 종류: {}", successCount.get() + 1, reservationCodes.stream().distinct().count());
-        assertThat(successCount.get()).isEqualTo(retryCount); // 9번 모두 성공
+        // then: 모든 요청이 성공하고, 동일한 예약 코드를 반환해야 함 (멱등성)
+        log.info("총 성공: {}, 예약 코드 종류: {}", successCount.get(), reservationCodes.stream().distinct().count());
+        assertThat(successCount.get()).isEqualTo(threadCount); // 10번 모두 성공
 
         // 모든 응답이 동일한 예약 코드를 가져야 함
         assertThat(reservationCodes.stream().distinct()).hasSize(1);
-        assertThat(reservationCodes.get(0)).isEqualTo(firstResponse.reservationCode());
 
         // DB 확인: 예약이 1건만 생성되어야 함
         long reservationCount = reservationJpaRepository.findAll().stream()

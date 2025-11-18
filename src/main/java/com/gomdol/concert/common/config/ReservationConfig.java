@@ -26,6 +26,11 @@ public class ReservationConfig {
             public int maxRetryCount() {
                 return props.maxRetryCount();
             }
+
+            @Override
+            public long retryDelayMillis() {
+                return props.retryDelayMillis();
+            }
         };
     }
 }
