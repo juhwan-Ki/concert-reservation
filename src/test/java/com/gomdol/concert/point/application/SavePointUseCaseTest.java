@@ -8,6 +8,7 @@ import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
 import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
 import com.gomdol.concert.point.presentation.dto.PointResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +47,7 @@ public class SavePointUseCaseTest {
         long beforeBalance = point.getBalance();
         long afterBalance = beforeBalance + req.amount();
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
@@ -78,7 +79,7 @@ public class SavePointUseCaseTest {
         Point point = Point.create(FIXED_UUID,0L);
 
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // pointHistory 저장 시점에 제약 위반/에러가 난 것처럼 예외 발생 유도
         when(pointHistoryRepository.save(any(PointHistory.class)))
@@ -105,7 +106,7 @@ public class SavePointUseCaseTest {
         long beforeBalance = point.getBalance();
         long afterBalance = beforeBalance - req.amount();
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
         // when
@@ -137,7 +138,7 @@ public class SavePointUseCaseTest {
         Point point = Point.create(FIXED_UUID,10000L);
 
         when(pointHistoryRepository.findByUserIdAndRequestId(FIXED_UUID, FIXED_REQUEST_ID)).thenReturn(Optional.empty());
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // pointHistory 저장 시점에 제약 위반/에러가 난 것처럼 예외 발생 유도
         when(pointHistoryRepository.save(any(PointHistory.class)))
@@ -165,7 +166,7 @@ public class SavePointUseCaseTest {
                 .thenReturn(Optional.empty()); // 첫 호출 시
 
         Point point = Point.create(FIXED_UUID, 0L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -194,7 +195,7 @@ public class SavePointUseCaseTest {
                 .thenReturn(Optional.empty()); // 첫 호출 시
 
         Point point = Point.create(FIXED_UUID, 10000L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         when(pointRepository.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
         // 히스토리 첫 저장은 정상
         when(pointHistoryRepository.save(any(PointHistory.class))).thenAnswer(inv -> inv.getArgument(0));

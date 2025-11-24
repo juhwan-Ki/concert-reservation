@@ -1,33 +1,40 @@
 package com.gomdol.concert.reservation.application.usecase;
 
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
+import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
+import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
+import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
-import com.gomdol.concert.reservation.application.port.out.ReservationSeatRepository;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
-import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
 import com.gomdol.concert.show.application.port.out.ShowQueryRepository;
 import com.gomdol.concert.venue.application.port.out.VenueSeatRepository;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 좌석 예약 비즈니스 로직
+ * - 재시도 로직은 ReservationFacade에서 처리
+ * - 각 호출마다 새로운 트랜잭션으로 실행 (REQUIRES_NEW)
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReservationSeatUseCase implements ReservationSeatPort {
+public class ReservationSeatUseCase {
 
     private final ReservationRepository reservationRepository;
-    private final ReservationSeatRepository  reservationSeatRepository;
     private final VenueSeatRepository venueSeatRepository;
     private final ShowQueryRepository showQueryRepository;
     private final ReservationCodeGenerator reservationCodeGenerator;
+    private final ReservationPolicyProvider policyProvider;
 
     /**
      * 좌석 예약 (홀드)
@@ -35,27 +42,43 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
      * @param command 예약 요청 정보
      * @return 예약 결과
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ReservationResponse reservationSeat(ReservationSeatCommand command) {
         log.info("reservation request: {}", command);
+
         // 같은 키로 들어오면 멱등성을 확인
         Optional<Reservation> existed = reservationRepository.findByRequestId(command.requestId());
-        if(existed.isPresent())
+        if (existed.isPresent()) {
+            log.info("멱등성 체크: 기존 예약 반환 - requestId={}, reservationCode={}", command.requestId(), existed.get().getReservationCode());
             return ReservationResponse.fromDomain(existed.get());
+        }
+
+        // 좌석 수 제한 검증 추가
+        if (command.seatIds().size() > policyProvider.maxSeatsPerReservation())
+            throw new IllegalArgumentException(String.format("최대 %d개 좌석까지 예약 가능합니다.", policyProvider.maxSeatsPerReservation()));
+
         // 해당 공연이 존재하는지 확인
         if(!showQueryRepository.existsById(command.showId()))
             throw new IllegalArgumentException("공연이 존재하지 않습니다.");
+
         // 예약하려는 좌석이 존재하면 값을 가져옴
-        List<VenueSeat> venueSeats = findSeatByIdsOrThrow(command.seatIds());
-        // 좌석이 예약이 되어 있는지 확인
-        checkReservableSeat(command.showId(), command.seatIds());
-        // 예약이 안되어 있으면 예약(HOLD)
+        List<Long> sortedSeatIds = command.seatIds().stream().sorted().toList();
+        List<VenueSeat> venueSeats = findSeatByIdsOrThrow(sortedSeatIds);
+
+        // 예약 생성 (유니크 제약조건이 동시성 제어)
         long amount = venueSeats.stream().mapToLong(VenueSeat::getPrice).sum();
         String reservationCode = reservationCodeGenerator.newReservationCode();
-        List<ReservationSeat> seats = venueSeats.stream().map(seat -> ReservationSeat.create(null, seat.getId(), command.showId())).toList();
-        Reservation savedReservation = reservationRepository.save(Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount));
+        List<ReservationSeat> seats = venueSeats.stream() // 데드락 발생을 줄이기 위해 정렬함
+                .sorted(Comparator.comparing(VenueSeat::getVenueId))  // 다시 한번 확인
+                .map(seat -> ReservationSeat.create(null, seat.getId(), command.showId()))
+                .toList();
 
-        log.info("좌석 예약 완료 - reservationId: {}, reservationCode: {}, holdExpiresAt: {}", savedReservation.getId(), savedReservation.getReservationCode(), savedReservation.getExpiresAt());
+        // 예외를 던져서 Facade에서 처리하도록 함 (트랜잭션 rollback-only 문제 방지)
+        Reservation savedReservation = reservationRepository.save(
+                Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount, policyProvider.holdMinutes()));
+
+        log.info("좌석 예약 완료 - reservationId: {}, reservationCode: {}, holdExpiresAt: {}",
+                savedReservation.getId(), savedReservation.getReservationCode(), savedReservation.getExpiresAt());
         return ReservationResponse.fromDomain(savedReservation);
     }
 
@@ -65,11 +88,5 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
             throw new IllegalStateException("좌석이 존재하지 않습니다.");
 
         return venueSeats;
-    }
-
-    private void checkReservableSeat(Long showId, List<Long> seatIds) {
-        // 존재하면 이미 예약에 잡혀 있기 때문에 에러를 발생
-        if(reservationSeatRepository.existsByShowIdAndIdIn(showId, seatIds))
-            throw new IllegalStateException("일부 좌석이 이미 선점되었습니다.");
     }
 }

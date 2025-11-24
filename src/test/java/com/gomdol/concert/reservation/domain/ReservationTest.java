@@ -1,8 +1,12 @@
 package com.gomdol.concert.reservation.domain;
 
+import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,15 +16,22 @@ import static com.gomdol.concert.common.ReservationTestFixture.mockReservationSe
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.BDDMockito.given;
 
+
+@ExtendWith(MockitoExtension.class)
 public class ReservationTest {
+
+    @Mock
+    private ReservationPolicyProvider policyProvider;
 
     @Test
     public void 좌석_상태가_HOLD인_신규_예약을_생성한다 () throws Exception {
         // given
+        given(policyProvider.holdMinutes()).willReturn(10);
         List<ReservationSeat> seats = mockReservationSeats(null, ReservationSeatStatus.HOLD);
         // when
-        Reservation reservation = Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, seats, 40000L);
+        Reservation reservation = Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, seats, 40000L, policyProvider.holdMinutes());
         // then
         assertThat(reservation.getId()).isNull();
         assertThat(reservation.getReservationCode()).isEqualTo(RESERVATION_CODE);
@@ -47,9 +58,11 @@ public class ReservationTest {
 
     @Test
     void 좌석이_없으면_에러를_발생시킨다() {
+        // given
+        given(policyProvider.holdMinutes()).willReturn(10);
         // when & then
         assertThrows(IllegalArgumentException.class, () ->
-                Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, List.of(), 40000L)
+                Reservation.create(FIXED_UUID, RESERVATION_CODE, FIXED_REQUEST_ID, List.of(), 40000L, policyProvider.holdMinutes())
         );
     }
 

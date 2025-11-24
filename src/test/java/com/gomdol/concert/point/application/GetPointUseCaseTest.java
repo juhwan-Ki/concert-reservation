@@ -30,26 +30,26 @@ public class GetPointUseCaseTest {
     public void 포인트가_없으면_0원으로_초기화_후_반환한다() throws Exception {
         // given
         Point point = Point.create(FIXED_UUID,0L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         // when
         PointResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
         // then
         assertThat(response).isEqualTo(PointResponse.fromDomain(point));
         assertThat(response.balance()).isEqualTo(0L);
 
-        verify(pointRepository).findByUserId(FIXED_UUID);
+        verify(pointRepository).findByUserIdWithLock(FIXED_UUID);
     }
 
     @Test
     public void 포인트가_존재하면_해당_포인트를_반환한다() throws Exception {
         Point point = Point.create(FIXED_UUID,10000L);
-        when(pointRepository.findByUserId(FIXED_UUID)).thenReturn(Optional.of(point));
+        when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         // when
         PointResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
         // then
         assertThat(response).isEqualTo(PointResponse.fromDomain(point));
         assertThat(response.balance()).isEqualTo(10000L);
 
-        verify(pointRepository).findByUserId(FIXED_UUID);
+        verify(pointRepository).findByUserIdWithLock(FIXED_UUID);
     }
 }

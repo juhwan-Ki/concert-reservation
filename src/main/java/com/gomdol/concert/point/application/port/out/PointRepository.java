@@ -5,6 +5,6 @@ import com.gomdol.concert.point.domain.model.Point;
 import java.util.Optional;
 
 public interface PointRepository {
-    Optional<Point> findByUserId(String userId);
+    Optional<Point> findByUserIdWithLock(String userId);
     Point save(Point point);
 }

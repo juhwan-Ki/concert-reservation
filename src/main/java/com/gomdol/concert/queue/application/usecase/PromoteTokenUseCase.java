@@ -27,23 +27,19 @@ public class PromoteTokenUseCase implements PromoteTokenPort {
         int capacity = queuePolicyProvider.capacity();
 
         // 현재 입장중인 인원 수
-        long enteredActive = queueRepository.countEnteredActive(targetId, now); // status=ENTERED AND expires_at > now
+        long enteredActive = queueRepository.countEnteredActiveWithLock(targetId, now); // status=ENTERED AND expires_at > now
         int roomSize = (int) Math.max(0, capacity - enteredActive);
         if (roomSize == 0)
             return 0;
 
         int promoted = 0;
         long ttlSeconds = queuePolicyProvider.enteredTtlSeconds();
-        Instant enteredExpiresAt = now.plusSeconds(ttlSeconds);
-        List<QueueToken> waitingTokens = queueRepository.findAllTargetIdAndStatusAndOffsetLimit(targetId, QueueStatus.WAITING, now, roomSize);
-        // TODO: 행을 선점하는게 나으려나?
+        List<QueueToken> waitingTokens = queueRepository.findAndLockWaitingTokens(targetId, now, roomSize);
         for (QueueToken token : waitingTokens) {
             try {
                 token.entered(ttlSeconds);
                 queueRepository.save(token);
                 promoted++;
-            } catch (DataIntegrityViolationException e) {
-                log.debug("동시성 충돌 - 이미 승급된 사용자, 무시");
             } catch (Exception e) {
                 log.warn("예상치 못한 오류", e);
             }

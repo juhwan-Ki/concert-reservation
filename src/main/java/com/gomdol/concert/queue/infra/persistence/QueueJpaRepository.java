@@ -2,7 +2,9 @@ package com.gomdol.concert.queue.infra.persistence;
 
 import com.gomdol.concert.queue.domain.model.QueueStatus;
 import com.gomdol.concert.queue.infra.persistence.entity.QueueTokenEntity;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,6 +46,7 @@ public interface QueueJpaRepository extends JpaRepository<QueueTokenEntity, Long
     /*
      * 현재 대기열의 진입하고 있는 사용자 수 리턴
      * */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
       select count(q) from QueueTokenEntity q
       where q.targetId = :targetId
@@ -53,16 +56,15 @@ public interface QueueJpaRepository extends JpaRepository<QueueTokenEntity, Long
     long countEnteredActive(@Param("targetId") Long targetId, @Param("now") Instant now);
 
     /*
-     * 현재 waiting 상태인 대기열 토큰의 정보 리턴
+     * 현재 waiting 상태인 대기열 토큰의 정보 리턴 -> 비관적락 적용
      * */
-    @Query(value = """
-      select * from queue_token q
-      where q.target_id = :targetId
-        and q.status = :status
-        and q.expires_at > :now
-      limit :limit
-    """, nativeQuery = true)
-    List<QueueTokenEntity> findAllTargetIdAndStatusAndOffsetLimit(@Param("targetId") Long targetId, @Param("status")QueueStatus queueStatus, @Param("now") Instant now, @Param("limit")int limit);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(value = "SELECT * FROM queue_token q " +
+            "WHERE q.target_id = :targetId AND q.status = 'WAITING' " +
+            "AND q.expires_at > :now " +
+            "ORDER BY q.id ASC LIMIT :limit " +
+            "FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    List<QueueTokenEntity> findAndLockWaitingTokens(@Param("targetId") Long targetId, @Param("now") Instant now, @Param("limit") int limit);
 
     /*
      * 만료된 대기열 토큰의 정보를 리턴

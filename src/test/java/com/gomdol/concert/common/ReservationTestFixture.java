@@ -83,8 +83,8 @@ public class ReservationTestFixture {
     public static List<VenueSeat> mockVenueSeats() {
         return List.of(
                 VenueSeat.create(1L, "A", 1, 10000L),
-                VenueSeat.create( 1L, "A", 2, 10000L),
-                VenueSeat.create( 1L, "A", 3, 10000L)
+                VenueSeat.create( 2L, "A", 2, 10000L),
+                VenueSeat.create( 3L, "A", 3, 10000L)
         );
     }
 }

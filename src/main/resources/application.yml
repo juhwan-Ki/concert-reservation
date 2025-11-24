@@ -46,6 +46,12 @@ queue:
   entered-ttl-seconds: 600   # 10분
   capacity: 50
 
+reservation:
+  hold-minutes: 10
+  max-seats-per-reservation: 4
+  max-retry-count: 3
+  retry-delay-millis: 100
+
 springdoc:
   # Swagger UI 제공 경로
   swagger-ui:

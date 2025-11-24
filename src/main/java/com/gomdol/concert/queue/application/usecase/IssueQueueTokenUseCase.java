@@ -34,7 +34,7 @@ public class IssueQueueTokenUseCase implements IssueQueueTokenPort {
             return QueueTokenResponse.fromDomain(existed.get());
 
         // 현재 입장한 사용자 수 및 대기 중인 사용자 확인
-        long enteredCount = queueRepository.countEnteredActive(cmd.targetId(), Instant.now());
+        long enteredCount = queueRepository.countEnteredActiveWithLock(cmd.targetId(), Instant.now());
         int capacity = queuePolicyProvider.capacity();
         boolean hasWaitingUsers = queueRepository.isWaiting(cmd.targetId());
 

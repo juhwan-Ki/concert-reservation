@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.MessageDigest;
 import java.util.UUID;
 
 import static com.gomdol.concert.common.FixedField.FIXED_UUID;
@@ -76,7 +75,7 @@ class PointIntegrationTest {
         assertThat(response.balance()).isEqualTo(chargeAmount);
 
         // DB 확인
-        Point savedPoint = pointRepository.findByUserId(FIXED_UUID).orElseThrow();
+        Point savedPoint = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
         assertThat(savedPoint.getBalance()).isEqualTo(chargeAmount);
 
         // 히스토리 확인
@@ -100,7 +99,7 @@ class PointIntegrationTest {
         savePointPort.savePoint(FIXED_UUID, new PointRequest(requestId2, chargeAmount2, UseType.CHARGE));
 
         // then
-        Point point = pointRepository.findByUserId(FIXED_UUID).orElseThrow();
+        Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
         assertThat(point.getBalance()).isEqualTo(chargeAmount1 + chargeAmount2);
 
         // 히스토리 확인 - requestId로 개별 확인
@@ -126,7 +125,7 @@ class PointIntegrationTest {
         assertThat(response.balance()).isEqualTo(chargeAmount - useAmount);
 
         // DB 확인
-        Point point = pointRepository.findByUserId(FIXED_UUID).orElseThrow();
+        Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
         assertThat(point.getBalance()).isEqualTo(chargeAmount - useAmount);
 
         // 히스토리 확인 - 사용 내역 확인
@@ -154,7 +153,7 @@ class PointIntegrationTest {
                 .hasMessageContaining("잔액이 부족합니다");
 
         // 잔액 변경 없음 확인
-        Point point = pointRepository.findByUserId(FIXED_UUID).orElseThrow();
+        Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
         assertThat(point.getBalance()).isEqualTo(chargeAmount);
     }
 
@@ -273,7 +272,7 @@ class PointIntegrationTest {
         savePointPort.savePoint(FIXED_UUID, new PointRequest(useRequestId, chargeAmount, UseType.USE));
 
         // then
-        Point point = pointRepository.findByUserId(FIXED_UUID).orElseThrow();
+        Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
         assertThat(point.getBalance()).isEqualTo(0L);
     }
 }

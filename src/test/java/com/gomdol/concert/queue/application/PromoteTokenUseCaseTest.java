@@ -45,7 +45,7 @@ class PromoteTokenUseCaseTest {
         // 현재 ENTERED 수
         given(queuePolicyProvider.capacity()).willReturn(capacity);
         given(queuePolicyProvider.enteredTtlSeconds()).willReturn(enteredTtl);
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class)))
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class)))
                 .willReturn(currentEntered);
 
         // WAITING 토큰 목록 (20명)
@@ -54,8 +54,8 @@ class PromoteTokenUseCaseTest {
                 QueueToken.of(2L, "token2", "user2", targetId, QueueStatus.WAITING, 2L, 1800L),
                 QueueToken.of(3L, "token3", "user3", targetId, QueueStatus.WAITING, 3L, 1800L)
         );
-        given(queueRepository.findAllTargetIdAndStatusAndOffsetLimit(
-                eq(targetId), eq(QueueStatus.WAITING), any(Instant.class), eq(expectedPromoteCount)))
+        given(queueRepository.findAndLockWaitingTokens(
+                eq(targetId), any(Instant.class), eq(expectedPromoteCount)))
                 .willReturn(waitingTokens);
 
         // when
@@ -63,8 +63,8 @@ class PromoteTokenUseCaseTest {
 
         // then
         verify(queueRepository, times(waitingTokens.size())).save(any(QueueToken.class));
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
-        verify(queueRepository).findAllTargetIdAndStatusAndOffsetLimit(eq(targetId), eq(QueueStatus.WAITING), any(Instant.class), eq(expectedPromoteCount));
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
+        verify(queueRepository).findAndLockWaitingTokens(eq(targetId), any(Instant.class), eq(expectedPromoteCount));
     }
 
     @Test
@@ -75,7 +75,7 @@ class PromoteTokenUseCaseTest {
         long currentEntered = 50;  // 꽉 참
 
         given(queuePolicyProvider.capacity()).willReturn(capacity);
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(currentEntered);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(currentEntered);
 
         // when
         int promoted = promoteTokenUseCase.promote(targetId);
@@ -84,8 +84,8 @@ class PromoteTokenUseCaseTest {
         assertThat(promoted).isEqualTo(0);
 
         // 승급 시도하지 않음
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
-        verify(queueRepository, never()).findAllTargetIdAndStatusAndOffsetLimit(anyLong(), any(QueueStatus.class), any(Instant.class), anyInt());
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
+        verify(queueRepository, never()).findAndLockWaitingTokens(anyLong(), any(Instant.class), anyInt());
         verify(queueRepository, never()).save(any(QueueToken.class));
     }
 
@@ -97,7 +97,7 @@ class PromoteTokenUseCaseTest {
         long currentEntered = 60;  // 초과
 
         given(queuePolicyProvider.capacity()).willReturn(capacity);
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(currentEntered);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(currentEntered);
 
         // when
         int promoted = promoteTokenUseCase.promote(targetId);
@@ -105,8 +105,8 @@ class PromoteTokenUseCaseTest {
         // then
         assertThat(promoted).isEqualTo(0);
 
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
-        verify(queueRepository, never()).findAllTargetIdAndStatusAndOffsetLimit(anyLong(), any(QueueStatus.class), any(Instant.class), anyInt());
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
+        verify(queueRepository, never()).findAndLockWaitingTokens(anyLong(), any(Instant.class), anyInt());
     }
 
     @Test
@@ -118,11 +118,11 @@ class PromoteTokenUseCaseTest {
         int expectedPromoteCount = 20;
 
         given(queuePolicyProvider.capacity()).willReturn(capacity);
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(currentEntered);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(currentEntered);
 
         // WAITING 토큰 없음
-        given(queueRepository.findAllTargetIdAndStatusAndOffsetLimit(
-                eq(targetId), eq(QueueStatus.WAITING), any(Instant.class), eq(expectedPromoteCount)))
+        given(queueRepository.findAndLockWaitingTokens(
+                eq(targetId), any(Instant.class), eq(expectedPromoteCount)))
                 .willReturn(List.of());
 
         // when
@@ -131,8 +131,8 @@ class PromoteTokenUseCaseTest {
         // then
         assertThat(promoted).isEqualTo(0);
 
-        verify(queueRepository).countEnteredActive(eq(targetId), any(Instant.class));
-        verify(queueRepository).findAllTargetIdAndStatusAndOffsetLimit(eq(targetId), eq(QueueStatus.WAITING), any(Instant.class), eq(expectedPromoteCount));
+        verify(queueRepository).countEnteredActiveWithLock(eq(targetId), any(Instant.class));
+        verify(queueRepository).findAndLockWaitingTokens(eq(targetId), any(Instant.class), eq(expectedPromoteCount));
         verify(queueRepository, never()).save(any(QueueToken.class));
     }
 
@@ -147,7 +147,7 @@ class PromoteTokenUseCaseTest {
 
         given(queuePolicyProvider.capacity()).willReturn(capacity);
         given(queuePolicyProvider.enteredTtlSeconds()).willReturn(enteredTtl);
-        given(queueRepository.countEnteredActive(eq(targetId), any(Instant.class))).willReturn(currentEntered);
+        given(queueRepository.countEnteredActiveWithLock(eq(targetId), any(Instant.class))).willReturn(currentEntered);
 
         // WAITING 토큰 5명만 있음 (남은 자리 20개보다 적음)
         List<QueueToken> waitingTokens = List.of(
@@ -157,8 +157,8 @@ class PromoteTokenUseCaseTest {
                 QueueToken.of(4L, "token4", "user4", targetId, QueueStatus.WAITING, 4L, 1800L),
                 QueueToken.of(5L, "token5", "user5", targetId, QueueStatus.WAITING, 5L, 1800L)
         );
-        given(queueRepository.findAllTargetIdAndStatusAndOffsetLimit(
-                eq(targetId), eq(QueueStatus.WAITING), any(Instant.class), eq(expectedPromoteCount)))
+        given(queueRepository.findAndLockWaitingTokens(
+                eq(targetId), any(Instant.class), eq(expectedPromoteCount)))
                 .willReturn(waitingTokens);
 
         // when

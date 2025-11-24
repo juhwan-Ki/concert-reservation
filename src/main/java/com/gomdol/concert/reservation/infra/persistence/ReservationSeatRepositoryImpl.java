@@ -14,7 +14,7 @@ public class ReservationSeatRepositoryImpl implements ReservationSeatRepository 
     private final ReservationSeatJpaRepository reservationSeatJpaRepository;
 
     @Override
-    public boolean existsByShowIdAndIdIn(Long showId, List<Long> seatIds) {
-        return reservationSeatJpaRepository.existsByShowIdAndIdInAndStatus(showId, seatIds, List.of(ReservationSeatStatus.HOLD, ReservationSeatStatus.CONFIRMED));
+    public boolean existsByShowIdAndSeatIdsAndStatus(Long showId, List<Long> seatIds, List<ReservationSeatStatus> statuses) {
+        return !reservationSeatJpaRepository.findByShowIdAndSeatIdsWithLock(showId, seatIds, statuses).isEmpty();
     }
 }

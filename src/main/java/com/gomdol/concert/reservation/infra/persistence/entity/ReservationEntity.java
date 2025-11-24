@@ -13,7 +13,11 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "reservations")
+@Table(name = "reservations",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_reservation_request_id",
+                        columnNames = {"request_id"})
+        })
 @Getter
 @Builder(access = AccessLevel.PRIVATE)
 public class ReservationEntity extends BaseEntity {
@@ -40,8 +44,8 @@ public class ReservationEntity extends BaseEntity {
     private LocalDateTime confirmedAt;
 
     // 1:N 관계 매핑 (CASCADE로 함께 저장/삭제)
-    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OrderBy("seatId ASC")
     @Builder.Default
     private List<ReservationSeatEntity> reservationSeats = new ArrayList<>();
 

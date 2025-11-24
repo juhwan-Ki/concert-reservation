@@ -12,7 +12,7 @@ import lombok.*;
 @Table(name = "reservation_seats",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_reservation_seats_unique_slot",
-                        columnNames = {"show_id", "seat_id"})
+                        columnNames = {"show_id", "seat_id", "status"})
         })
 @Getter
 @Builder

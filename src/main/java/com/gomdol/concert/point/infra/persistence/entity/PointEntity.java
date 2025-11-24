@@ -4,11 +4,9 @@ import com.gomdol.concert.common.domain.BaseEntity;
 import com.gomdol.concert.point.domain.model.Point;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "points")
 public class PointEntity extends BaseEntity {
@@ -17,8 +15,6 @@ public class PointEntity extends BaseEntity {
     @Column(name = "user_id", length = 36)
     private String userId; // users.id와 동일 값 (PK = FK)
 
-    @Version
-    private Long version; // 낙관적 락
 
     @Column(name = "balance", nullable = false)
     private long balance;
