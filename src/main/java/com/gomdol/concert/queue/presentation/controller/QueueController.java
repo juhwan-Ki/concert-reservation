@@ -1,6 +1,6 @@
 package com.gomdol.concert.queue.presentation.controller;
 
-import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.common.presentation.exception.ApiException;
 import com.gomdol.concert.queue.application.port.in.EnterQueuePort;
 import com.gomdol.concert.queue.application.port.in.IssueQueueTokenPort;
 import com.gomdol.concert.queue.presentation.dto.EnterQueueRequest;

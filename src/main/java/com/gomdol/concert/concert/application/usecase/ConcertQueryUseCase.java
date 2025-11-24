@@ -1,7 +1,7 @@
 package com.gomdol.concert.concert.application.usecase;
 
-import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.common.util.PageableUtils;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
+import com.gomdol.concert.common.infra.util.PageableUtils;
 import com.gomdol.concert.concert.application.port.in.ConcertQueryPort;
 import com.gomdol.concert.concert.domain.policy.ConcertPolicies;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;

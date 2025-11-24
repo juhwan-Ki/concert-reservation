@@ -1,6 +1,6 @@
 package com.gomdol.concert.queue.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.CreateEntity;
+import com.gomdol.concert.common.infra.persistence.entity.CreateEntity;
 import com.gomdol.concert.queue.domain.model.QueueStatus;
 import com.gomdol.concert.queue.domain.model.QueueToken;
 import jakarta.persistence.*;

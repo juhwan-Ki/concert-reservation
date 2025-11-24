@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.exception;
+package com.gomdol.concert.common.presentation.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

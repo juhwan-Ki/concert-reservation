@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.exception;
+package com.gomdol.concert.common.presentation.exception;
 
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.OptimisticLockException;

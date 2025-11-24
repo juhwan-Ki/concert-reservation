@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.application.port.in;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import org.springframework.data.domain.Pageable;

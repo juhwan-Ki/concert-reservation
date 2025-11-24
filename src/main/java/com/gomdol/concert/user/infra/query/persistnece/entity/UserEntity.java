@@ -1,6 +1,6 @@
 package com.gomdol.concert.user.infra.query.persistnece.entity;
 
-import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.common.infra.persistence.entity.SoftDeleteEntity;
 import com.gomdol.concert.user.domain.Role;
 import jakarta.persistence.*;
 

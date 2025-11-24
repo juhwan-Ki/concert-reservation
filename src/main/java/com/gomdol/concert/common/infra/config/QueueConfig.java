@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.config;
+package com.gomdol.concert.common.infra.config;
 
 import com.gomdol.concert.queue.application.port.out.QueuePolicyProvider;
 import com.gomdol.concert.queue.application.port.out.TokenGenerator;

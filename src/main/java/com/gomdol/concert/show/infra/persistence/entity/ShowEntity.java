@@ -1,6 +1,6 @@
 package com.gomdol.concert.show.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.common.infra.persistence.entity.SoftDeleteEntity;
 import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
 import com.gomdol.concert.show.domain.model.ShowStatus;
 import jakarta.persistence.*;

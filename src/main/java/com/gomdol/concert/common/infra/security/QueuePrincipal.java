@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.security;
+package com.gomdol.concert.common.infra.security;
 
 import java.security.Principal;
 

@@ -1,6 +1,6 @@
 package com.gomdol.concert.payment.infra.persistence.entitiy;
 
-import com.gomdol.concert.common.domain.BaseEntity;
+import com.gomdol.concert.common.infra.persistence.entity.BaseEntity;
 import com.gomdol.concert.payment.domain.PaymentStatus;
 import com.gomdol.concert.payment.domain.model.Payment;
 import jakarta.persistence.*;

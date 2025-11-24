@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.infra.persistence.entitiy;
 
-import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.common.infra.persistence.entity.SoftDeleteEntity;
 import com.gomdol.concert.concert.domain.model.AgeRating;
 import com.gomdol.concert.concert.domain.model.Concert;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;

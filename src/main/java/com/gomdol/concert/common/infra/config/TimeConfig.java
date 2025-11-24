@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.config;
+package com.gomdol.concert.common.infra.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

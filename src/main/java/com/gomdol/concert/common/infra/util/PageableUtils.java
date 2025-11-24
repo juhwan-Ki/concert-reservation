@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.util;
+package com.gomdol.concert.common.infra.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

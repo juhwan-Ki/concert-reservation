@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.config;
+package com.gomdol.concert.common.infra.config;
 
 
 import jakarta.validation.constraints.Max;

@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.presentation.controller;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.application.usecase.ConcertQueryUseCase;
 import com.gomdol.concert.concert.presentation.dto.ConcertDetailResponse;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;

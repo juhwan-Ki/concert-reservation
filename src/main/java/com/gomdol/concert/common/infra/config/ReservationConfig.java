@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.config;
+package com.gomdol.concert.common.infra.config;
 
 import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

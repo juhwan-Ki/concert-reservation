@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.domain;
+package com.gomdol.concert.common.infra.persistence.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

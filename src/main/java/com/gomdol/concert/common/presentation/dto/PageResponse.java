@@ -1,4 +1,4 @@
-package com.gomdol.concert.common.dto;
+package com.gomdol.concert.common.presentation.dto;
 
 import org.springframework.data.domain.Page;
 

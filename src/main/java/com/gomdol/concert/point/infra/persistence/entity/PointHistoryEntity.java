@@ -1,6 +1,6 @@
 package com.gomdol.concert.point.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.CreateEntity;
+import com.gomdol.concert.common.infra.persistence.entity.CreateEntity;
 import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import jakarta.persistence.*;

@@ -1,6 +1,6 @@
 package com.gomdol.concert.reservation.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.BaseEntity;
+import com.gomdol.concert.common.infra.persistence.entity.BaseEntity;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import jakarta.persistence.*;

@@ -1,7 +1,7 @@
 package com.gomdol.concert.payment.presentation.controller;
 
-import com.gomdol.concert.common.exception.ApiException;
-import com.gomdol.concert.common.security.QueuePrincipal;
+import com.gomdol.concert.common.presentation.exception.ApiException;
+import com.gomdol.concert.common.infra.security.QueuePrincipal;
 import com.gomdol.concert.payment.presentation.dto.PaymentRequest;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.payment.presentation.dto.RefundResponse;

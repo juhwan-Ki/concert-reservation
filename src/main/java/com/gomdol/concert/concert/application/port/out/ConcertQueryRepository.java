@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.application.port.out;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.infra.persistence.query.ConcertDetailProjection;
 import com.gomdol.concert.show.infra.persistence.query.ShowProjection;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
