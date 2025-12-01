@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface IdempotencyKeyJpaRepository extends JpaRepository<IdempotencyKeyEntity, String> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM IdempotencyKeyEntity i WHERE i.idempotencyKey = :key AND i.userId = :userId AND i.resourceType = :type")
     Optional<IdempotencyKeyEntity> findByIdempotencyKey(@Param("key") String key, @Param("userId") String userId, @Param("type") ResourceType type);
 }
