@@ -9,7 +9,6 @@ import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.Re
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.domain.ReservationSeatStatus;
 import com.gomdol.concert.reservation.domain.model.Reservation;
-import com.gomdol.concert.reservation.infra.persistence.entity.ReservationEntity;
 import com.gomdol.concert.reservation.infra.persistence.entity.ReservationSeatEntity;
 import com.gomdol.concert.reservation.infra.persistence.ReservationJpaRepository;
 import com.gomdol.concert.reservation.infra.persistence.ReservationSeatJpaRepository;
@@ -34,8 +33,8 @@ import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 @DisplayName("좌석 예약 통합 테스트")
+@Transactional
 @Import(TestContainerConfig.class)
 class ReservationIntegrationTest {
 
@@ -94,7 +93,7 @@ class ReservationIntegrationTest {
         assertThat(response.reservationId()).isNotNull();
 
         // DB 확인
-        Reservation savedReservation = reservationRepository.findByRequestId(requestId).orElseThrow();
+        Reservation savedReservation = reservationRepository.findById(response.reservationId()).orElseThrow();
         assertThat(savedReservation.getReservationSeats()).hasSize(2);
         assertThat(savedReservation.getUserId()).isEqualTo(FIXED_UUID);
         assertThat(savedReservation.getExpiresAt()).isAfter(LocalDateTime.now());
@@ -120,7 +119,7 @@ class ReservationIntegrationTest {
         assertThat(firstResponse.requestId()).isEqualTo(secondResponse.requestId());
 
         // Repository로 조회하여 같은 예약임을 확인
-        Reservation reservation = reservationRepository.findByRequestId(requestId).orElseThrow();
+        Reservation reservation = reservationRepository.findById(firstResponse.reservationId()).orElseThrow();
         assertThat(reservation.getReservationCode()).isEqualTo(firstResponse.reservationCode());
         assertThat(reservation.getRequestId()).isEqualTo(requestId);
     }
@@ -172,25 +171,25 @@ class ReservationIntegrationTest {
                 .isInstanceOf(RuntimeException.class);
     }
 
-    // TODO: 여기서 부터는 아직 UseCase 미구현으로 DB에서 데이터 가져오는걸로 일단 진행..
-    @Test
-    @DisplayName("예약 코드로 예약 조회")
-    void 예약_코드로_조회() {
-        // given
-        String requestId = UUID.randomUUID().toString();
-        List<Long> seatIds = List.of(testSeatId1, testSeatId2);
-        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, requestId, testShowId, seatIds);
-        ReservationResponse createdReservation = reservationSeatPort.reservationSeat(command);
-
-        // when
-        Reservation foundReservation = reservationRepository.findByRequestId(requestId).orElseThrow();
-
-        // then
-        assertThat(foundReservation).isNotNull();
-        assertThat(foundReservation.getUserId()).isEqualTo(FIXED_UUID);
-        assertThat(foundReservation.getReservationCode()).isEqualTo(createdReservation.reservationCode());
-        assertThat(foundReservation.getReservationSeats()).hasSize(2);
-    }
+    // TODO: 예약 조회 기능 추가 필요
+//    @Test
+//    @DisplayName("예약 코드로 예약 조회")
+//    void 예약_코드로_조회() {
+//        // given
+//        String reservationCode = UUID.randomUUID().toString();
+//        List<Long> seatIds = List.of(testSeatId1, testSeatId2);
+//        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, requestId, testShowId, seatIds);
+//        ReservationResponse createdReservation = reservationSeatPort.reservationSeat(command);
+//
+//        // when
+//        Reservation foundReservation = reservationRepository.findByReservationCode(requestId).orElseThrow();
+//
+//        // then
+//        assertThat(foundReservation).isNotNull();
+//        assertThat(foundReservation.getUserId()).isEqualTo(FIXED_UUID);
+//        assertThat(foundReservation.getReservationCode()).isEqualTo(createdReservation.reservationCode());
+//        assertThat(foundReservation.getReservationSeats()).hasSize(2);
+//    }
 
     @Test
     @DisplayName("예약된 좌석 상태가 HOLD인지 확인")

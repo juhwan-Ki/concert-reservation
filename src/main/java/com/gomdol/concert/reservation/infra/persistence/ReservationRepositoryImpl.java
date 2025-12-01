@@ -21,11 +21,6 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
-    public Optional<Reservation> findByRequestId(String requestId) {
-        return reservationJpaRepository.findByRequestId(requestId).map(ReservationEntity::toDomain);
-    }
-
-    @Override
     public Optional<Reservation> findById(Long id) {
         return reservationJpaRepository.findById(id).map(ReservationEntity::toDomain);
     }
