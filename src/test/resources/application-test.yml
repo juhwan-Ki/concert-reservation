@@ -1,13 +1,10 @@
 spring:
   application:
     name: concert-reservation-test
-  datasource:
-    url: jdbc:mysql://localhost:3306/concert_reservation?characterEncoding=UTF-8&serverTimezone=UTC
-    username: application
-    password: application
+  # TestContainer의 @ServiceConnection이 자동으로 datasource, redis 설정
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop
     show-sql: false
     properties:
       hibernate:
@@ -16,10 +13,9 @@ spring:
         timezone: NORMALIZE_UTC
         jdbc:
           time_zone: UTC
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  data:
+    redis:
+      password:  # 테스트 환경에서는 비밀번호 없음
 
 queue:
   token-length: 24
