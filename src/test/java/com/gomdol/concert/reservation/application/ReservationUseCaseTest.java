@@ -35,6 +35,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ReservationUseCase 테스트")
 public class ReservationUseCaseTest {
 
     @Mock

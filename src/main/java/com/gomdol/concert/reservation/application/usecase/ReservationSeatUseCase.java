@@ -3,7 +3,7 @@ package com.gomdol.concert.reservation.application.usecase;
 import com.gomdol.concert.common.application.idempotency.port.in.CreateIdempotencyKey;
 import com.gomdol.concert.common.domain.idempotency.ResourceType;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
+import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
@@ -29,8 +29,9 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReservationSeatUseCase {
+public class ReservationSeatUseCase implements ReservationSeatPort {
 
+    private final CreateIdempotencyKey createIdempotencyKey;
     private final ReservationRepository reservationRepository;
     private final VenueSeatRepository venueSeatRepository;
     private final ShowQueryRepository showQueryRepository;
@@ -45,6 +46,7 @@ public class ReservationSeatUseCase {
      * @param command 예약 요청 정보
      * @return 예약 결과
      */
+    @Override
     @Transactional
     public ReservationResponse reservationSeat(ReservationSeatCommand command) {
         log.info("reservation request: {}", command);
@@ -72,6 +74,9 @@ public class ReservationSeatUseCase {
         // 예외를 던져서 Facade에서 처리하도록 함 (트랜잭션 rollback-only 문제 방지)
         Reservation savedReservation = reservationRepository.save(
                 Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount, policyProvider.holdMinutes()));
+
+        // 멱등성 키 저장 - 성공적으로 처리된 요청 기록
+        createIdempotencyKey.createIdempotencyKey(command.requestId(), command.userId(), ResourceType.RESERVATION, savedReservation.getId());
 
         log.info("좌석 예약 완료 - reservationId: {}, reservationCode: {}, holdExpiresAt: {}",
                 savedReservation.getId(), savedReservation.getReservationCode(), savedReservation.getExpiresAt());
