@@ -9,6 +9,9 @@ public record PointRequest (
         @Schema(example = "550e8400-e29b-41d4-a716-446655440000", description = "멱등키")
         @NotNull String requestId,
 
+        @Schema(example = "adfjalkj24123221", description = "유저ID")
+        @NotNull String userId,
+
         @Schema(example = "2000", description = "충천/사용 금액")
         @NotNull Long amount,
 

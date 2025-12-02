@@ -60,6 +60,6 @@ public class PointHistoryEntity extends CreateEntity {
     }
 
     public static PointHistory toDomain(PointHistoryEntity entity) {
-        return new PointHistory(entity.id, entity.userId, entity.requestId, entity.amount, entity.useType, entity.beforeBalance, entity.afterBalance);
+        return new PointHistory(entity.id, entity.userId, entity.requestId, entity.amount, entity.useType, entity.beforeBalance, entity.afterBalance, entity.getCreatedAt());
     }
 }
