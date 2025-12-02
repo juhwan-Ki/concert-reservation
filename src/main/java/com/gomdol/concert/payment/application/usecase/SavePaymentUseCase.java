@@ -1,6 +1,8 @@
 package com.gomdol.concert.payment.application.usecase;
 
-import com.gomdol.concert.payment.application.port.in.PaymentPort;
+import com.gomdol.concert.common.application.idempotency.port.in.CreateIdempotencyKey;
+import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
 import com.gomdol.concert.payment.domain.model.Payment;
 import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
@@ -13,31 +15,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentUseCase {
+public class SavePaymentUseCase implements SavePaymentPort{
 
+    private final CreateIdempotencyKey createIdempotencyKey;
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentCodeGenerator codeGenerator;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public PaymentResponse processPayment(PaymentPort.PaymentCommand command) {
+    @Transactional
+    public PaymentResponse processPayment(SavePaymentPort.PaymentCommand command) {
         log.info("payment request: {}", command);
-
-        // 멱등성 체크
-        Optional<Payment> existed = paymentRepository.findByRequestId(command.requestId());
-        if (existed.isPresent())
-            return PaymentResponse.fromDomain(existed.get());
 
         // 결제 준비
         if(command.amount() <= 0)
@@ -50,11 +44,9 @@ public class PaymentUseCase {
                 command.requestId(),
                 reservation.getAmount()));
 
-        eventPublisher.publishEvent(PointRequestedEvent.useRequest(
-                command.userId(),
-                command.requestId(),
-                command.amount()
-                ));
+        // 멱등성 키 저장 - 성공적으로 처리된 요청 기록
+        createIdempotencyKey.createIdempotencyKey(command.requestId(), command.userId(), ResourceType.PAYMENT, saved.getId());
+        eventPublisher.publishEvent(PointRequestedEvent.useRequest(command.userId(), command.requestId(), command.amount()));
 
         return PaymentResponse.fromDomain(saved);
     }
