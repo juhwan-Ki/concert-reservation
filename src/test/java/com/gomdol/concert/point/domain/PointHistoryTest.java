@@ -7,6 +7,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.LocalDateTime;
+
 import static com.gomdol.concert.common.FixedField.FIXED_REQUEST_ID;
 import static com.gomdol.concert.common.FixedField.FIXED_UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -19,7 +21,7 @@ public class PointHistoryTest {
     @ValueSource(strings = {"asda", "   ", "", "asdsadasdasdasdasdasdasd-1241242132132asdasdasd" })
     void userId가_잘못된_데이터로_들어오면_에러를_발생_시킨다(String invalidUserId) {
         // when&then
-        assertThatThrownBy(() -> PointHistory.create(invalidUserId, FIXED_REQUEST_ID,10000L,  UseType.CHARGE, 10000L, 10000L))
+        assertThatThrownBy(() -> PointHistory.create(invalidUserId, FIXED_REQUEST_ID,10000L,  UseType.CHARGE, 10000L, 10000L, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("요청한 사용자 ID가 올바른 형식이 아닙니다.");
     }
@@ -33,7 +35,7 @@ public class PointHistoryTest {
         long afterBalance = 9000L;
 
         // when
-        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.USE, beforeBalance, afterBalance);
+        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.USE, beforeBalance, afterBalance, LocalDateTime.now());
 
         // then
         assertThat(history.getUserId()).isEqualTo(FIXED_UUID);
@@ -49,7 +51,7 @@ public class PointHistoryTest {
         long afterBalance = 9000L;
 
         // when
-        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.CHARGE, beforeBalance, afterBalance);
+        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.CHARGE, beforeBalance, afterBalance, LocalDateTime.now());
 
         // then
         assertThat(history.getUserId()).isEqualTo(FIXED_UUID);
@@ -65,7 +67,7 @@ public class PointHistoryTest {
         long afterBalance = 9000L;
 
         // when
-        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.REFUND, beforeBalance, afterBalance);
+        PointHistory history = PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, amount, UseType.REFUND, beforeBalance, afterBalance, LocalDateTime.now());
 
         // then
         assertThat(history.getUserId()).isEqualTo(FIXED_UUID);
@@ -80,15 +82,15 @@ public class PointHistoryTest {
         long negativeAmount = -1000L;
 
         // when & then
-        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.USE, 1000L, 1000L))
+        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.USE, 1000L, 1000L, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("0보다 커야");
 
-        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.CHARGE, 0L, 0L))
+        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.CHARGE, 0L, 0L, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("0보다 커야");
 
-        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.REFUND, 0L, 0L))
+        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID, negativeAmount, UseType.REFUND, 0L, 0L, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("0보다 커야");
     }
@@ -100,7 +102,7 @@ public class PointHistoryTest {
         long negativeBalance = -1000L;
 
         // when & then
-        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID,1000L, UseType.USE, 10000L, negativeBalance))
+        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID,1000L, UseType.USE, 10000L, negativeBalance, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("잔액은 양수여야 합니다.");
     }
@@ -112,7 +114,7 @@ public class PointHistoryTest {
         long negativeBalance = -1000L;
 
         // when & then
-        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID,1000L, UseType.USE, negativeBalance, 1000L))
+        assertThatThrownBy(() -> PointHistory.create(FIXED_UUID, FIXED_REQUEST_ID,1000L, UseType.USE, negativeBalance, 1000L, LocalDateTime.now()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("잔액은 양수여야 합니다.");
     }
