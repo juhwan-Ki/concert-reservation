@@ -1,8 +1,12 @@
 package com.gomdol.concert.payment.application.facade;
 
-import com.gomdol.concert.payment.application.port.in.PaymentPort;
+import com.gomdol.concert.common.application.cache.port.out.CacheRepository;
+import com.gomdol.concert.common.application.idempotency.port.in.GetIdempotencyKey;
+import com.gomdol.concert.common.application.lock.port.out.DistributedLock;
+import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.application.usecase.PaymentQueryUseCase;
-import com.gomdol.concert.payment.application.usecase.PaymentUseCase;
+import com.gomdol.concert.payment.application.usecase.SavePaymentUseCase;
 import com.gomdol.concert.payment.domain.model.Payment;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import lombok.RequiredArgsConstructor;
@@ -10,62 +14,113 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 결제 작업 Facade
- * - 재시도 로직 처리 (동시성 이슈로 인한 일시적 실패 대응)
- * - 실제 비즈니스 로직은 PaymentUseCase 위임 (REQUIRES_NEW 트랜잭션)
- * - 추후 분산락 적용
+ * - Redis 캐시로 빠른 멱등성 체크
+ * - DB 멱등키로 영속적 멱등성 보장
+ * - Redis 분산 락으로 동시성 제어
+ * - 단일 트랜잭션으로 비즈니스 로직 실행
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentFacade implements PaymentPort {
+public class PaymentFacade {
 
-    private final PaymentUseCase paymentUseCase;
+    private final CacheRepository cacheRepository;
+    private final GetIdempotencyKey getIdempotencyKey;
+    private final DistributedLock distributedLock;
+    private final SavePaymentUseCase paymentUseCase;
     private final PaymentQueryUseCase paymentQueryUseCase;
 
-    @Override
+    private static final String CACHE_KEY_PREFIX = "payment:result:";
+    private static final Duration CACHE_TTL = Duration.ofHours(1);
+
+    /**
+     * 결제 처리 with 멱등성 보장 및 분산 락
+     * 1. Redis 캐시 체크
+     * 2. DB 멱등성 체크 (트랜잭션 전)
+     * 3. 분산 락 획득
+     * 4. UseCase 호출 (트랜잭션 시작)
+     * 5. DB 제약조건 위반 시 멱등성 재확인
+     */
     public PaymentResponse processPayment(PaymentCommand command) {
-        String requestId = command.requestId();
-        String userId = command.userId();
-        int maxRetries = 3;
+        String cacheKey = CACHE_KEY_PREFIX + command.requestId();
 
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                //  REQUIRES_NEW 트랜잭션으로 실행됨
-                return paymentUseCase.processPayment(command);
-            } catch (DataIntegrityViolationException e) {
-                // 유니크 제약조건 위반 → 멱등성 체크
-                log.warn("제약조건 위반 발생 - userId={} requestId={} attempt={} error={}", userId, requestId, attempt + 1, e.getMessage());
-
-                // 새로운 트랜잭션에서 조회하여 멱등성 체크
-                Optional<Payment> existed = paymentQueryUseCase.findByRequestId(requestId);
-                if (existed.isPresent()) {
-                    log.info("멱등성 보장: 기존 결제 반환 - requestId={}, paymentCode={}", requestId, existed.get().getPaymentCode());
-                    return PaymentResponse.fromDomain(existed.get());
-                }
-
-                throw new IllegalStateException("이미 결제가 완료되었습니다.");
-            } catch (IllegalStateException e) {
-                // 기타 동시성 이슈로 인한 일시적 실패 → 재시도
-                if (attempt == maxRetries - 1) {
-                    log.error("결제 저장 실패 - 최대 재시도 횟수 초과 userId={} requestId={} attempt={}", userId, requestId, attempt + 1, e);
-                    throw new IllegalStateException("처리 중인 요청이 너무 많습니다. 잠시 후 다시 시도하세요.", e);
-                }
-
-                log.warn("결제 저장 재시도 중 userId={} requestId={} attempt={}/{} exception={}",
-                        userId, requestId, attempt + 1, maxRetries, e.getClass().getSimpleName());
-
-                try {
-                    Thread.sleep(100 * (attempt + 1));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("재시도 중 인터럽트 발생", ie);
-                }
-            }
+        // Redis 캐시 체크 (가장 빠른 조회)
+        Optional<PaymentResponse> cached = cacheRepository.get(cacheKey, PaymentResponse.class);
+        if (cached.isPresent()) {
+            log.info("Redis 캐시 히트 - requestId={}", command.requestId());
+            return cached.get();
         }
-        throw new IllegalStateException("결제 저장 실패");
+
+        // DB 멱등성 체크 (트랜잭션 전) - 이미 처리된 요청이면 즉시 반환
+        PaymentResponse response = findByRequestId(command, cacheKey);
+        if (response != null)
+            return response;
+
+        // 분산 락 획득 및 UseCase 호출
+        String lockKey = generateLockKey(command.reservationId());
+        return distributedLock.executeWithLock(lockKey, 3, 10, TimeUnit.SECONDS,
+                () -> executePayment(command, cacheKey));
+    }
+
+    /**
+     * 결제 처리
+     * - 성공 시 Redis 캐시에 저장
+     * - DB 제약조건 위반 시 멱등성 키로 재확인
+     * - 이미 처리된 요청이면 기존 결제 반환 및 캐시 저장
+     */
+    private PaymentResponse executePayment(PaymentCommand command, String cacheKey) {
+        try {
+            log.info("결제 처리 시작 - userId={}, requestId={}, reservationId={}", command.userId(), command.requestId(), command.reservationId());
+            PaymentResponse response = paymentUseCase.processPayment(command);
+            // 성공 시 캐시에 저장
+            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            log.info("캐시 저장 - requestId={}, paymentId={}", command.requestId(), response.paymentId());
+            return response;
+        } catch (DataIntegrityViolationException e) {
+            log.warn("제약조건 위반 발생 - userId={} requestId={} error={}", command.userId(), command.requestId(), e.getMessage());
+            PaymentResponse response = findByRequestId(command, cacheKey);
+            if (response != null)
+                return response;
+            // 멱등성 키가 없으면 다른 제약조건 위반
+            throw new IllegalStateException("결제 처리 중 제약조건 위반", e);
+        }
+    }
+
+    /**
+     * 멱등키 조회
+     * - 멱등키가 등록되어 있으면 동일한 값 반환
+     */
+    private PaymentResponse findByRequestId(PaymentCommand command, String cacheKey) {
+        Optional<Long> existingPaymentId = getIdempotencyKey.getIdempotencyKey(
+                command.requestId(),
+                command.userId(),
+                ResourceType.PAYMENT
+        );
+
+        if (existingPaymentId.isPresent()) {
+            log.info("DB 멱등성 체크: 기존 결제 반환 - requestId={}, paymentId={}",
+                    command.requestId(), existingPaymentId.get());
+            Payment payment = paymentQueryUseCase.findById(existingPaymentId.get())
+                    .orElseThrow(() -> new IllegalStateException("멱등성 키는 존재하나 결제를 찾을 수 없습니다."));
+            PaymentResponse response = PaymentResponse.fromDomain(payment);
+            // 캐시에 저장 (다음 요청을 위해)
+            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            return response;
+        }
+        return null;
+    }
+
+    /**
+     * 락 키 생성: payment:reservation:{reservationId}
+     * - 같은 예약에 대한 결제는 순차적으로 처리
+     */
+    private String generateLockKey(Long reservationId) {
+        return String.format("payment:reservation:%d", reservationId);
     }
 }
