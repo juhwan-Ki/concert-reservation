@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.infra.persistence.query;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;
 import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;

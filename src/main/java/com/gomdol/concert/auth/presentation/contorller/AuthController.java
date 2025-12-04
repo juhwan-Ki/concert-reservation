@@ -4,7 +4,7 @@ import com.gomdol.concert.auth.presentation.dto.LoginRequest;
 import com.gomdol.concert.auth.presentation.dto.LogoutRequest;
 import com.gomdol.concert.auth.presentation.dto.RefreshRequest;
 import com.gomdol.concert.auth.presentation.dto.TokenResponse;
-import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.common.presentation.exception.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

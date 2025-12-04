@@ -1,8 +1,7 @@
 package com.gomdol.concert.reservation.presentation.controller;
 
-import com.gomdol.concert.common.exception.ApiException;
-import com.gomdol.concert.common.exception.ErrorResponse;
-import com.gomdol.concert.common.security.QueuePrincipal;
+import com.gomdol.concert.common.presentation.exception.ApiException;
+import com.gomdol.concert.common.presentation.exception.ErrorResponse;
 import com.gomdol.concert.concert.presentation.dto.ShowResponseList;
 import com.gomdol.concert.queue.application.port.in.EnterQueuePort;
 import com.gomdol.concert.queue.application.port.in.EnterQueuePort.QueueTokenRequest;

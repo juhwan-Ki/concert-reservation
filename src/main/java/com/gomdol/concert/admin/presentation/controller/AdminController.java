@@ -2,7 +2,7 @@ package com.gomdol.concert.admin.presentation.controller;
 
 import com.gomdol.concert.admin.presentation.dto.ConcertCreateRequest;
 import com.gomdol.concert.admin.presentation.dto.ConcertUpdateRequest;
-import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.common.presentation.exception.ApiException;
 import com.gomdol.concert.concert.presentation.dto.ConcertResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -17,6 +17,11 @@ spring:
     properties:
       hibernate.format_sql: true
       hibernate.generate_statistics: true  # 성능 통계(개발 전용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
 
 logging:
   level:

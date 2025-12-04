@@ -1,9 +1,9 @@
 package com.gomdol.concert.point.application;
 
+import com.gomdol.concert.point.application.port.in.GetPointBalancePort.PointSearchResponse;
 import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.application.usecase.GetPointBalanceUseCase;
 import com.gomdol.concert.point.domain.model.Point;
-import com.gomdol.concert.point.presentation.dto.PointResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,9 +32,9 @@ public class GetPointUseCaseTest {
         Point point = Point.create(FIXED_UUID,0L);
         when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         // when
-        PointResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
+        PointSearchResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
         // then
-        assertThat(response).isEqualTo(PointResponse.fromDomain(point));
+        assertThat(response).isEqualTo(PointSearchResponse.fromDomain(point));
         assertThat(response.balance()).isEqualTo(0L);
 
         verify(pointRepository).findByUserIdWithLock(FIXED_UUID);
@@ -45,9 +45,9 @@ public class GetPointUseCaseTest {
         Point point = Point.create(FIXED_UUID,10000L);
         when(pointRepository.findByUserIdWithLock(FIXED_UUID)).thenReturn(Optional.of(point));
         // when
-        PointResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
+        PointSearchResponse response = getPointBalanceUseCase.getPoint(FIXED_UUID);
         // then
-        assertThat(response).isEqualTo(PointResponse.fromDomain(point));
+        assertThat(response).isEqualTo(PointSearchResponse.fromDomain(point));
         assertThat(response.balance()).isEqualTo(10000L);
 
         verify(pointRepository).findByUserIdWithLock(FIXED_UUID);

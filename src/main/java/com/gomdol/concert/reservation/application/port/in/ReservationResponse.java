@@ -20,7 +20,7 @@ public record ReservationResponse(
         LocalDateTime expiredAt
 
 ) {
-        public static ReservationResponse fromDomain(Reservation reservation) {
-                return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getRequestId(), reservation.getExpiresAt());
-        }
+    public static ReservationResponse fromDomain(Reservation reservation) {
+            return new ReservationResponse(reservation.getId(), reservation.getReservationCode(), reservation.getRequestId(), reservation.getExpiresAt());
+    }
 }

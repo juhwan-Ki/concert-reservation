@@ -1,6 +1,6 @@
 package com.gomdol.concert.payment.infra;
 
-import com.gomdol.concert.common.util.CodeGenerator;
+import com.gomdol.concert.common.infra.util.CodeGenerator;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;

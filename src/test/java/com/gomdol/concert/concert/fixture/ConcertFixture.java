@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.fixture;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.domain.model.AgeRating;
 import com.gomdol.concert.concert.domain.model.Concert;
 import com.gomdol.concert.concert.domain.model.ConcertStatus;

@@ -20,6 +20,11 @@ public class PointHistoryRepositoryImpl implements PointHistoryRepository {
     }
 
     @Override
+    public Optional<PointHistory> findById(Long id) {
+        return jpaRepository.findById(id).map(PointHistoryEntity::toDomain);
+    }
+
+    @Override
     public Optional<PointHistory> findByUserIdAndRequestId(String userId, String requestId) {
         return jpaRepository.findByUserIdAndRequestId(userId, requestId).map(PointHistoryEntity::toDomain);
     }

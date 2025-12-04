@@ -1,6 +1,6 @@
 package com.gomdol.concert.venue.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.SoftDeleteEntity;
+import com.gomdol.concert.common.infra.persistence.entity.SoftDeleteEntity;
 import com.gomdol.concert.venue.domain.model.Venue;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

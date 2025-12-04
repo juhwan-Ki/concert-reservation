@@ -3,8 +3,8 @@ package com.gomdol.concert.payment.integration;
 import com.gomdol.concert.common.TestContainerConfig;
 import com.gomdol.concert.common.TestDataFactory;
 import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
-import com.gomdol.concert.payment.application.port.in.PaymentPort;
-import com.gomdol.concert.payment.application.port.in.PaymentPort.PaymentCommand;
+import com.gomdol.concert.payment.application.facade.PaymentFacade;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.infra.persistence.PaymentJpaRepository;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.point.application.port.out.PointRepository;
@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PaymentConcurrencyTest {
 
     @Autowired
-    private PaymentPort paymentPort;
+    private PaymentFacade paymentFacade;
 
     @Autowired
     private PaymentJpaRepository paymentJpaRepository;
@@ -127,7 +127,7 @@ class PaymentConcurrencyTest {
                     latch.countDown();
                     latch.await();
 
-                    PaymentResponse response = paymentPort.processPayment(command);
+                    PaymentResponse response = paymentFacade.processPayment(command);
                     successCount.incrementAndGet();
                     paymentIds.add(response.paymentId());
                     log.info("결제 성공: paymentId={}", response.paymentId());
@@ -199,7 +199,7 @@ class PaymentConcurrencyTest {
                     long amount = 10000L; // 좌석당 10,000원
                     PaymentCommand command = new PaymentCommand(reservation.reservationId(), userId, paymentRequestId, amount);
 
-                    PaymentResponse response = paymentPort.processPayment(command);
+                    PaymentResponse response = paymentFacade.processPayment(command);
                     successCount.incrementAndGet();
                     log.info("결제 성공: userId={}, paymentId={}", userId, response.paymentId());
                 } catch (Exception e) {
@@ -266,7 +266,7 @@ class PaymentConcurrencyTest {
                     long amount = 10000L; // 좌석당 10,000원
                     PaymentCommand command = new PaymentCommand(reservation.reservationId(), userId, paymentRequestId, amount);
 
-                    PaymentResponse response = paymentPort.processPayment(command);
+                    PaymentResponse response = paymentFacade.processPayment(command);
                     successCount.incrementAndGet();
                     log.info("결제 요청 성공: paymentId={}", response.paymentId());
                 } catch (Exception e) {

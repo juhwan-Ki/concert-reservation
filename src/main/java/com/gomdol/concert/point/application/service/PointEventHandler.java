@@ -56,7 +56,8 @@ public class PointEventHandler {
                     amount,
                     event.useType(),
                     before,
-                    after);
+                    after,
+                    java.time.LocalDateTime.now());
             historyRepository.save(history);
             log.info("포인트 사용 히스토리 저장: userId={}, amount={}, before={}, after={}", event.userId(), event.amount(), before, after);
 
@@ -103,7 +104,8 @@ public class PointEventHandler {
                     amount,
                     event.useType(),
                     before,
-                    after);
+                    after,
+                    java.time.LocalDateTime.now());
             historyRepository.save(history);
             log.info("포인트 충전 히스토리 저장: userId={}, amount={}, before={}, after={}", event.userId(), event.amount(), before, after);
 

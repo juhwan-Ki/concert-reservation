@@ -23,4 +23,9 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     public Optional<Payment> findByRequestId(String requestId) {
         return paymentJpaRepository.findByRequestId(requestId).map(PaymentEntity::toDomain);
     }
+
+    @Override
+    public Optional<Payment> findById(Long id) {
+        return paymentJpaRepository.findById(id).map(PaymentEntity::toDomain);
+    }
 }

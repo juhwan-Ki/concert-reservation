@@ -3,8 +3,8 @@ package com.gomdol.concert.payment.integration;
 import com.gomdol.concert.common.TestContainerConfig;
 import com.gomdol.concert.common.TestDataFactory;
 import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
-import com.gomdol.concert.payment.application.port.in.PaymentPort;
-import com.gomdol.concert.payment.application.port.in.PaymentPort.PaymentCommand;
+import com.gomdol.concert.payment.application.facade.PaymentFacade;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
 import com.gomdol.concert.payment.domain.PaymentStatus;
 import com.gomdol.concert.payment.domain.model.Payment;
@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.*;
 class PaymentIntegrationTest {
 
     @Autowired
-    private PaymentPort paymentPort;
+    private PaymentFacade paymentFacade;
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -132,7 +132,7 @@ class PaymentIntegrationTest {
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
 
         // when
-        PaymentResponse response = paymentPort.processPayment(command);
+        PaymentResponse response = paymentFacade.processPayment(command);
 
         // then
         assertThat(response).isNotNull();
@@ -156,10 +156,10 @@ class PaymentIntegrationTest {
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
 
         // when - 첫 번째 결제
-        PaymentResponse firstResponse = paymentPort.processPayment(command);
+        PaymentResponse firstResponse = paymentFacade.processPayment(command);
 
         // when - 동일한 requestId로 재요청
-        PaymentResponse secondResponse = paymentPort.processPayment(command);
+        PaymentResponse secondResponse = paymentFacade.processPayment(command);
 
         // then - 동일한 결제가 반환되어야 함
         assertThat(firstResponse.paymentId()).isEqualTo(secondResponse.paymentId());
@@ -181,7 +181,7 @@ class PaymentIntegrationTest {
         PaymentCommand command = new PaymentCommand(nonExistentReservationId, FIXED_UUID, requestId, 100000L);
 
         // when & then
-        assertThatThrownBy(() -> paymentPort.processPayment(command))
+        assertThatThrownBy(() -> paymentFacade.processPayment(command))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("예약을 찾을 수 없습니다");
     }
@@ -195,7 +195,7 @@ class PaymentIntegrationTest {
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, wrongAmount);
 
         // when & then
-        assertThatThrownBy(() -> paymentPort.processPayment(command))
+        assertThatThrownBy(() -> paymentFacade.processPayment(command))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("결제 금액이 일치하지 않습니다");
     }
@@ -208,7 +208,7 @@ class PaymentIntegrationTest {
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, 0L);
 
         // when & then
-        assertThatThrownBy(() -> paymentPort.processPayment(command))
+        assertThatThrownBy(() -> paymentFacade.processPayment(command))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("결제 금액은 0보다 커야합니다");
     }
@@ -219,7 +219,7 @@ class PaymentIntegrationTest {
         // given - 결제 요청
         String requestId = UUID.randomUUID().toString();
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
-        PaymentResponse paymentResponse = paymentPort.processPayment(command);
+        PaymentResponse paymentResponse = paymentFacade.processPayment(command);
 
         // 트랜잭션 커밋을 위해 flush
         entityManager.flush();
@@ -252,7 +252,7 @@ class PaymentIntegrationTest {
         // given - 결제 요청
         String requestId = UUID.randomUUID().toString();
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
-        PaymentResponse paymentResponse = paymentPort.processPayment(command);
+        PaymentResponse paymentResponse = paymentFacade.processPayment(command);
 
         // 트랜잭션 커밋을 위해 flush
         entityManager.flush();
@@ -285,7 +285,7 @@ class PaymentIntegrationTest {
         // given - 결제 요청 및 완료
         String requestId = UUID.randomUUID().toString();
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
-        paymentPort.processPayment(command);
+        paymentFacade.processPayment(command);
 
         // 첫 번째 성공 이벤트
         entityManager.flush();
@@ -317,7 +317,7 @@ class PaymentIntegrationTest {
         // given
         String requestId = UUID.randomUUID().toString();
         PaymentCommand command = new PaymentCommand(reservationId, FIXED_UUID, requestId, reservationAmount);
-        PaymentResponse createdPayment = paymentPort.processPayment(command);
+        PaymentResponse createdPayment = paymentFacade.processPayment(command);
 
         // when
         Payment foundPayment = paymentRepository.findByRequestId(requestId).orElseThrow();

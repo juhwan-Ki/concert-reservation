@@ -1,6 +1,6 @@
 package com.gomdol.concert.concert.application;
 
-import com.gomdol.concert.common.dto.PageResponse;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
 import com.gomdol.concert.concert.application.usecase.ConcertQueryUseCase;
 import com.gomdol.concert.concert.application.port.out.ConcertQueryRepository;
 import com.gomdol.concert.concert.fixture.ConcertFixture;

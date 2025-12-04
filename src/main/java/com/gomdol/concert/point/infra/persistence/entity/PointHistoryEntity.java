@@ -1,6 +1,6 @@
 package com.gomdol.concert.point.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.CreateEntity;
+import com.gomdol.concert.common.infra.persistence.entity.CreateEntity;
 import com.gomdol.concert.point.domain.model.PointHistory;
 import com.gomdol.concert.point.domain.model.UseType;
 import jakarta.persistence.*;
@@ -60,6 +60,6 @@ public class PointHistoryEntity extends CreateEntity {
     }
 
     public static PointHistory toDomain(PointHistoryEntity entity) {
-        return new PointHistory(entity.id, entity.userId, entity.requestId, entity.amount, entity.useType, entity.beforeBalance, entity.afterBalance);
+        return new PointHistory(entity.id, entity.userId, entity.requestId, entity.amount, entity.useType, entity.beforeBalance, entity.afterBalance, entity.getCreatedAt());
     }
 }

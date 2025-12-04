@@ -1,12 +1,13 @@
 package com.gomdol.concert.point.integration;
 
 import com.gomdol.concert.common.TestContainerConfig;
+import com.gomdol.concert.point.application.facade.PointFacade;
 import com.gomdol.concert.point.application.port.in.GetPointBalancePort;
-import com.gomdol.concert.point.application.port.in.SavePointPort;
+import com.gomdol.concert.point.application.port.in.GetPointBalancePort.PointSearchResponse;
+import com.gomdol.concert.point.application.port.in.SavePointPort.PointSaveResponse;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.infra.persistence.PointJpaRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
-import com.gomdol.concert.point.presentation.dto.PointResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PointConcurrencyTest {
 
     @Autowired
-    private SavePointPort savePointPort;
+    private PointFacade pointFacade;
 
     @Autowired
     private GetPointBalancePort getPointBalancePort;
@@ -63,7 +64,7 @@ class PointConcurrencyTest {
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);
 
-        // when: 3번 동시 충전 (각각 다른 requestId)
+        // when: 3번 동시 충전 (각각 다른 requestId, 동일한 userId)
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
@@ -71,8 +72,8 @@ class PointConcurrencyTest {
                     latch.await();
 
                     String requestId = UUID.randomUUID().toString();
-                    PointRequest request = new PointRequest(requestId, chargeAmount, UseType.CHARGE);
-                    PointResponse response = savePointPort.savePoint(testUserId, request);
+                    PointRequest request = new PointRequest(requestId, testUserId, chargeAmount, UseType.CHARGE);
+                    PointSaveResponse response = pointFacade.savePoint(request);
 
                     successCount.incrementAndGet();
                     log.info("충전 성공: balance={}", response.balance());
@@ -86,13 +87,13 @@ class PointConcurrencyTest {
         executorService.shutdown();
         executorService.awaitTermination(30, TimeUnit.SECONDS);
 
-        // then: 모두 성공하고 최종 잔액은 10000
+        // then: 모두 성공하고 최종 잔액은 3000
         log.info("성공: {}, 실패: {}", successCount.get(), failCount.get());
         assertThat(successCount.get()).isEqualTo(threadCount);
         assertThat(failCount.get()).isEqualTo(0);
 
         // DB 확인
-        PointResponse finalBalance = transactionTemplate.execute(status ->
+        PointSearchResponse finalBalance = transactionTemplate.execute(status ->
                 getPointBalancePort.getPoint(testUserId));
         assertThat(finalBalance.balance()).isEqualTo(chargeAmount * threadCount);
     }
@@ -103,7 +104,7 @@ class PointConcurrencyTest {
         // given: 초기 잔액 5000 포인트
         long initialBalance = 5000L;
         String initRequestId = UUID.randomUUID().toString();
-        savePointPort.savePoint(testUserId, new PointRequest(initRequestId, initialBalance, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(initRequestId, testUserId, initialBalance, UseType.CHARGE));
 
         int threadCount = 10;
         long useAmount = 1000L; // 각각 1000씩 사용 시도
@@ -121,8 +122,8 @@ class PointConcurrencyTest {
                     latch.await();
 
                     String requestId = UUID.randomUUID().toString();
-                    PointRequest request = new PointRequest(requestId, useAmount, UseType.USE);
-                    PointResponse response = savePointPort.savePoint(testUserId, request);
+                    PointRequest request = new PointRequest(requestId, testUserId, useAmount, UseType.USE);
+                    PointSaveResponse response = pointFacade.savePoint(request);
 
                     successCount.incrementAndGet();
                     log.info("사용 성공: balance={}", response.balance());
@@ -142,7 +143,7 @@ class PointConcurrencyTest {
         assertThat(failCount.get()).isEqualTo(5);
 
         // DB 확인: 최종 잔액 0
-        PointResponse finalBalance = transactionTemplate.execute(status ->
+        PointSearchResponse finalBalance = transactionTemplate.execute(status ->
                 getPointBalancePort.getPoint(testUserId));
         assertThat(finalBalance.balance()).isEqualTo(0L);
     }
@@ -153,7 +154,7 @@ class PointConcurrencyTest {
         // given: 초기 잔액 1000
         long initialBalance = 1000L;
         String initRequestId = UUID.randomUUID().toString();
-        savePointPort.savePoint(testUserId, new PointRequest(initRequestId, initialBalance, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(initRequestId, testUserId, initialBalance, UseType.CHARGE));
 
         int chargeThreads = 5;
         int useThreads = 5;
@@ -176,8 +177,8 @@ class PointConcurrencyTest {
                     latch.await();
 
                     String requestId = UUID.randomUUID().toString();
-                    PointRequest request = new PointRequest(requestId, chargeAmount, UseType.CHARGE);
-                    savePointPort.savePoint(testUserId, request);
+                    PointRequest request = new PointRequest(requestId, testUserId, chargeAmount, UseType.CHARGE);
+                    pointFacade.savePoint(request);
                     chargeSuccess.incrementAndGet();
                 } catch (Exception e) {
                     log.error("충전 실패: error={}", e.getMessage());
@@ -193,8 +194,8 @@ class PointConcurrencyTest {
                     latch.await();
 
                     String requestId = UUID.randomUUID().toString();
-                    PointRequest request = new PointRequest(requestId, useAmount, UseType.USE);
-                    savePointPort.savePoint(testUserId, request);
+                    PointRequest request = new PointRequest(requestId, testUserId, useAmount, UseType.USE);
+                    pointFacade.savePoint(request);
                     useSuccess.incrementAndGet();
                 } catch (Exception e) {
                     useFail.incrementAndGet();
@@ -214,7 +215,7 @@ class PointConcurrencyTest {
         assertThat(chargeSuccess.get()).isEqualTo(chargeThreads);
 
         // DB 확인: 최종 잔액 = 초기(1000) + 충전(500*5) - 사용(300*성공횟수)
-        PointResponse finalBalance = transactionTemplate.execute(status ->
+        PointSearchResponse finalBalance = transactionTemplate.execute(status ->
                 getPointBalancePort.getPoint(testUserId));
         long expectedBalance = initialBalance + (chargeAmount * chargeSuccess.get()) - (useAmount * useSuccess.get());
         assertThat(finalBalance.balance()).isEqualTo(expectedBalance);
@@ -234,7 +235,7 @@ class PointConcurrencyTest {
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
 
-        List<PointResponse> responses = new CopyOnWriteArrayList<>();
+        List<PointSaveResponse> responses = new CopyOnWriteArrayList<>();
         AtomicInteger successCount = new AtomicInteger(0);
 
         // when: 10개 스레드가 동시에 같은 requestId로 충전 시도
@@ -244,8 +245,8 @@ class PointConcurrencyTest {
                     latch.countDown();
                     latch.await();
 
-                    PointRequest request = new PointRequest(requestId, chargeAmount, UseType.CHARGE);
-                    PointResponse response = savePointPort.savePoint(testUserId, request);
+                    PointRequest request = new PointRequest(requestId, testUserId, chargeAmount, UseType.CHARGE);
+                    PointSaveResponse response = pointFacade.savePoint(request);
 
                     responses.add(response);
                     successCount.incrementAndGet();
@@ -263,11 +264,11 @@ class PointConcurrencyTest {
         assertThat(successCount.get()).isEqualTo(threadCount);
 
         // 모든 응답이 동일한 잔액 (멱등성)
-        assertThat(responses.stream().map(PointResponse::balance).distinct()).hasSize(1);
+        assertThat(responses.stream().map(PointSaveResponse::balance).distinct()).hasSize(1);
         assertThat(responses.get(0).balance()).isEqualTo(chargeAmount);
 
         // DB 확인: 최종 잔액은 1번만 충전됨
-        PointResponse finalBalance = transactionTemplate.execute(status ->
+        PointSearchResponse finalBalance = transactionTemplate.execute(status ->
                 getPointBalancePort.getPoint(testUserId));
         assertThat(finalBalance.balance()).isEqualTo(chargeAmount);
 
@@ -279,14 +280,14 @@ class PointConcurrencyTest {
         // given: 초기 잔액 10000
         long initialBalance = 10000L;
         String initRequestId = UUID.randomUUID().toString();
-        savePointPort.savePoint(testUserId, new PointRequest(initRequestId, initialBalance, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(initRequestId, testUserId, initialBalance, UseType.CHARGE));
 
         String useRequestId = UUID.randomUUID().toString();
         long useAmount = 3000L;
 
         // when: 첫 번째 사용
-        PointRequest request = new PointRequest(useRequestId, useAmount, UseType.USE);
-        PointResponse firstResponse = savePointPort.savePoint(testUserId, request);
+        PointRequest request = new PointRequest(useRequestId, testUserId, useAmount, UseType.USE);
+        PointSaveResponse firstResponse = pointFacade.savePoint(request);
         log.info("첫 번째 사용 완료: balance={}", firstResponse.balance());
 
         // then: 동일 requestId로 9번 재시도
@@ -294,7 +295,7 @@ class PointConcurrencyTest {
         ExecutorService executorService = Executors.newFixedThreadPool(retryCount);
         CountDownLatch latch = new CountDownLatch(retryCount);
 
-        List<PointResponse> responses = new CopyOnWriteArrayList<>();
+        List<PointSaveResponse> responses = new CopyOnWriteArrayList<>();
         responses.add(firstResponse);
         AtomicInteger successCount = new AtomicInteger(0);
 
@@ -304,7 +305,7 @@ class PointConcurrencyTest {
                     latch.countDown();
                     latch.await();
 
-                    PointResponse response = savePointPort.savePoint(testUserId, request);
+                    PointSaveResponse response = pointFacade.savePoint(request);
                     responses.add(response);
                     successCount.incrementAndGet();
                     log.info("재시도 사용 성공: balance={}", response.balance());
@@ -318,16 +319,16 @@ class PointConcurrencyTest {
         executorService.awaitTermination(30, TimeUnit.SECONDS);
 
         // then: 모든 재시도 성공
-        log.info("총 성공: {}, 잔액 종류: {}", successCount.get() + 1, responses.stream().map(PointResponse::balance).distinct().count());
+        log.info("총 성공: {}, 잔액 종류: {}", successCount.get() + 1, responses.stream().map(PointSaveResponse::balance).distinct().count());
         assertThat(successCount.get()).isEqualTo(retryCount);
 
         // 모든 응답이 동일한 잔액 (멱등성)
         long expectedBalance = initialBalance - useAmount;
-        assertThat(responses.stream().map(PointResponse::balance).distinct()).hasSize(1);
+        assertThat(responses.stream().map(PointSaveResponse::balance).distinct()).hasSize(1);
         assertThat(responses.get(0).balance()).isEqualTo(expectedBalance);
 
         // DB 확인: 최종 잔액은 1번만 차감됨
-        PointResponse finalBalance = transactionTemplate.execute(status ->
+        PointSearchResponse finalBalance = transactionTemplate.execute(status ->
                 getPointBalancePort.getPoint(testUserId));
         assertThat(finalBalance.balance()).isEqualTo(expectedBalance);
     }

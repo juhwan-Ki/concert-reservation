@@ -6,5 +6,6 @@ import java.util.Optional;
 
 public interface PointHistoryRepository {
     PointHistory save(PointHistory pointHistory);
+    Optional<PointHistory> findById(Long id);
     Optional<PointHistory> findByUserIdAndRequestId(String userId, String requestId);
 }

@@ -2,6 +2,8 @@ package com.gomdol.concert.point.domain.model;
 
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 import static com.gomdol.concert.point.domain.policy.PointPolicy.validateAmount;
 import static com.gomdol.concert.user.domain.policy.UserPolicy.validateUser;
 
@@ -14,9 +16,11 @@ public class PointHistory {
     private final UseType useType;
     private final long beforeBalance;
     private final long afterBalance;
+    private final LocalDateTime createdAt;
 
     // DB에서 로딩 시 사용하는 생성자 (amount는 이미 변환된 값)
-    public PointHistory(Long id, String userId, String  requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
+    public PointHistory(Long id, String userId, String  requestId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
+        this.createdAt = createdAt;
         validateUser(userId);
         validateRequestId(requestId);
         // DB에서 로딩 시에는 amount가 이미 음수일 수 있음
@@ -33,7 +37,7 @@ public class PointHistory {
         this.afterBalance = afterBalance;
     }
 
-    private PointHistory(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
+    private PointHistory(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
         validateUser(userId);
 //        validateRequestId(requestId);
         validateAmount(amount);
@@ -46,10 +50,11 @@ public class PointHistory {
         this.amount = changeNegateAmount(amount);
         this.beforeBalance = beforeBalance;
         this.afterBalance = afterBalance;
+        this.createdAt = createdAt;
     }
 
-    public static PointHistory create(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance) {
-        return new PointHistory(userId, requestId, amount, useType, beforeBalance, afterBalance);
+    public static PointHistory create(String userId, String requestId, long amount, UseType useType, long beforeBalance, long afterBalance, LocalDateTime createdAt) {
+        return new PointHistory(userId, requestId, amount, useType, beforeBalance, afterBalance, createdAt);
     }
 
     private long changeNegateAmount(long amount) {

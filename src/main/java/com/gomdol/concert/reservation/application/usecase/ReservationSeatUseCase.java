@@ -1,7 +1,9 @@
 package com.gomdol.concert.reservation.application.usecase;
 
+import com.gomdol.concert.common.application.idempotency.port.in.CreateIdempotencyKey;
+import com.gomdol.concert.common.domain.idempotency.ResourceType;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
+import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
@@ -13,23 +15,23 @@ import com.gomdol.concert.venue.domain.model.VenueSeat;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 좌석 예약 비즈니스 로직
- * - 재시도 로직은 ReservationFacade에서 처리
- * - 각 호출마다 새로운 트랜잭션으로 실행 (REQUIRES_NEW)
+ * - 트랜잭션 관리
+ * - 멱등성 체크는 Facade에서 수행
+ * - 순수 비즈니스 로직 처리
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReservationSeatUseCase {
+public class ReservationSeatUseCase implements ReservationSeatPort {
 
+    private final CreateIdempotencyKey createIdempotencyKey;
     private final ReservationRepository reservationRepository;
     private final VenueSeatRepository venueSeatRepository;
     private final ShowQueryRepository showQueryRepository;
@@ -38,22 +40,18 @@ public class ReservationSeatUseCase {
 
     /**
      * 좌석 예약 (홀드)
+     * - 단일 트랜잭션으로 실행
+     * - 멱등성 체크는 Facade에서 수행
      *
      * @param command 예약 요청 정보
      * @return 예약 결과
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Override
+    @Transactional
     public ReservationResponse reservationSeat(ReservationSeatCommand command) {
         log.info("reservation request: {}", command);
 
-        // 같은 키로 들어오면 멱등성을 확인
-        Optional<Reservation> existed = reservationRepository.findByRequestId(command.requestId());
-        if (existed.isPresent()) {
-            log.info("멱등성 체크: 기존 예약 반환 - requestId={}, reservationCode={}", command.requestId(), existed.get().getReservationCode());
-            return ReservationResponse.fromDomain(existed.get());
-        }
-
-        // 좌석 수 제한 검증 추가
+        // 좌석 수 제한 검증
         if (command.seatIds().size() > policyProvider.maxSeatsPerReservation())
             throw new IllegalArgumentException(String.format("최대 %d개 좌석까지 예약 가능합니다.", policyProvider.maxSeatsPerReservation()));
 
@@ -76,6 +74,9 @@ public class ReservationSeatUseCase {
         // 예외를 던져서 Facade에서 처리하도록 함 (트랜잭션 rollback-only 문제 방지)
         Reservation savedReservation = reservationRepository.save(
                 Reservation.create(command.userId(), reservationCode, command.requestId(), seats, amount, policyProvider.holdMinutes()));
+
+        // 멱등성 키 저장 - 성공적으로 처리된 요청 기록
+        createIdempotencyKey.createIdempotencyKey(command.requestId(), command.userId(), ResourceType.RESERVATION, savedReservation.getId());
 
         log.info("좌석 예약 완료 - reservationId: {}, reservationCode: {}, holdExpiresAt: {}",
                 savedReservation.getId(), savedReservation.getReservationCode(), savedReservation.getExpiresAt());

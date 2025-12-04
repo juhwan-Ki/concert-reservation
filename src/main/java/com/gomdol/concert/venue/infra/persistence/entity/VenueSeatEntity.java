@@ -1,6 +1,6 @@
 package com.gomdol.concert.venue.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.BaseEntity;
+import com.gomdol.concert.common.infra.persistence.entity.BaseEntity;
 import com.gomdol.concert.venue.domain.model.VenueSeat;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

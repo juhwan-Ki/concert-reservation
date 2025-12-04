@@ -1,8 +1,9 @@
 package com.gomdol.concert.point.integration;
 
 import com.gomdol.concert.common.TestContainerConfig;
+import com.gomdol.concert.point.application.facade.PointFacade;
 import com.gomdol.concert.point.application.port.in.GetPointBalancePort;
-import com.gomdol.concert.point.application.port.in.SavePointPort;
+import com.gomdol.concert.point.application.port.in.GetPointBalancePort.PointSearchResponse;
 import com.gomdol.concert.point.application.port.out.PointHistoryRepository;
 import com.gomdol.concert.point.application.port.out.PointRepository;
 import com.gomdol.concert.point.domain.model.Point;
@@ -11,7 +12,6 @@ import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.infra.persistence.PointHistoryJpaRepository;
 import com.gomdol.concert.point.infra.persistence.PointJpaRepository;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
-import com.gomdol.concert.point.presentation.dto.PointResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static com.gomdol.concert.common.FixedField.FIXED_UUID;
+import static com.gomdol.concert.point.application.port.in.SavePointPort.*;
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
@@ -34,7 +35,7 @@ import static org.assertj.core.api.Assertions.*;
 class PointIntegrationTest {
 
     @Autowired
-    private SavePointPort savePointPort;
+    private PointFacade pointFacade;
 
     @Autowired
     private GetPointBalancePort getPointBalancePort;
@@ -64,10 +65,10 @@ class PointIntegrationTest {
         // given
         String requestId = UUID.randomUUID().toString();
         long chargeAmount = 10000L;
-        PointRequest request = new PointRequest(requestId, chargeAmount, UseType.CHARGE);
+        PointRequest request = new PointRequest(requestId, FIXED_UUID, chargeAmount, UseType.CHARGE);
 
         // when
-        PointResponse response = savePointPort.savePoint(FIXED_UUID, request);
+        PointSaveResponse response = pointFacade.savePoint(request);
 
         // then
         assertThat(response).isNotNull();
@@ -95,8 +96,8 @@ class PointIntegrationTest {
         long chargeAmount2 = 5000L;
 
         // when
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(requestId1, chargeAmount1, UseType.CHARGE));
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(requestId2, chargeAmount2, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(requestId1, FIXED_UUID, chargeAmount1, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(requestId2, FIXED_UUID, chargeAmount2, UseType.CHARGE));
 
         // then
         Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();
@@ -113,13 +114,13 @@ class PointIntegrationTest {
         // given - 먼저 포인트 충전
         String chargeRequestId = UUID.randomUUID().toString();
         long chargeAmount = 10000L;
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(chargeRequestId, chargeAmount, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(chargeRequestId, FIXED_UUID, chargeAmount, UseType.CHARGE));
 
         // when - 포인트 사용
         String useRequestId = UUID.randomUUID().toString();
         long useAmount = 3000L;
-        PointRequest useRequest = new PointRequest(useRequestId, useAmount, UseType.USE);
-        PointResponse response = savePointPort.savePoint(FIXED_UUID, useRequest);
+        PointRequest useRequest = new PointRequest(useRequestId, FIXED_UUID, useAmount, UseType.USE);
+        PointSaveResponse response = pointFacade.savePoint(useRequest);
 
         // then
         assertThat(response.balance()).isEqualTo(chargeAmount - useAmount);
@@ -141,14 +142,14 @@ class PointIntegrationTest {
         // given - 포인트 충전
         String chargeRequestId = UUID.randomUUID().toString();
         long chargeAmount = 5000L;
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(chargeRequestId, chargeAmount, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(chargeRequestId, FIXED_UUID, chargeAmount, UseType.CHARGE));
 
         // when & then - 잔액보다 많은 금액 사용 시도
         String useRequestId = UUID.randomUUID().toString();
         long useAmount = 10000L;
-        PointRequest useRequest = new PointRequest(useRequestId, useAmount, UseType.USE);
+        PointRequest useRequest = new PointRequest(useRequestId, FIXED_UUID, useAmount, UseType.USE);
 
-        assertThatThrownBy(() -> savePointPort.savePoint(FIXED_UUID, useRequest))
+        assertThatThrownBy(() -> pointFacade.savePoint(useRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("잔액이 부족합니다");
 
@@ -163,11 +164,11 @@ class PointIntegrationTest {
         // given
         String requestId = UUID.randomUUID().toString();
         long chargeAmount = 10000L;
-        PointRequest request = new PointRequest(requestId, chargeAmount, UseType.CHARGE);
+        PointRequest request = new PointRequest(requestId, FIXED_UUID, chargeAmount, UseType.CHARGE);
 
         // when - 동일한 requestId로 두 번 요청
-        PointResponse firstResponse = savePointPort.savePoint(FIXED_UUID, request);
-        PointResponse secondResponse = savePointPort.savePoint(FIXED_UUID, request);
+        PointSaveResponse firstResponse = pointFacade.savePoint(request);
+        PointSaveResponse secondResponse = pointFacade.savePoint(request);
 
         // then - 잔액이 중복 충전되지 않음
         assertThat(firstResponse.balance()).isEqualTo(secondResponse.balance());
@@ -183,15 +184,15 @@ class PointIntegrationTest {
     void 포인트_사용_멱등성() {
         // given - 먼저 포인트 충전
         String chargeRequestId = UUID.randomUUID().toString();
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(chargeRequestId, 10000L, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(chargeRequestId, FIXED_UUID, 10000L, UseType.CHARGE));
 
         // when - 동일한 requestId로 두 번 사용 요청
         String useRequestId = UUID.randomUUID().toString();
         long useAmount = 3000L;
-        PointRequest useRequest = new PointRequest(useRequestId, useAmount, UseType.USE);
+        PointRequest useRequest = new PointRequest(useRequestId, FIXED_UUID, useAmount, UseType.USE);
 
-        PointResponse firstResponse = savePointPort.savePoint(FIXED_UUID, useRequest);
-        PointResponse secondResponse = savePointPort.savePoint(FIXED_UUID, useRequest);
+        PointSaveResponse firstResponse = pointFacade.savePoint(useRequest);
+        PointSaveResponse secondResponse = pointFacade.savePoint(useRequest);
 
         // then - 잔액이 중복 차감되지 않음
         assertThat(firstResponse.balance()).isEqualTo(secondResponse.balance());
@@ -208,10 +209,10 @@ class PointIntegrationTest {
         // given - 포인트 충전
         String requestId = UUID.randomUUID().toString();
         long chargeAmount = 15000L;
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(requestId, chargeAmount, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(requestId, FIXED_UUID, chargeAmount, UseType.CHARGE));
 
         // when
-        PointResponse response = getPointBalancePort.getPoint(FIXED_UUID);
+        PointSearchResponse response = getPointBalancePort.getPoint(FIXED_UUID);
 
         // then
         assertThat(response).isNotNull();
@@ -226,7 +227,7 @@ class PointIntegrationTest {
         String newUserId = UUID.randomUUID().toString();
 
         // when
-        PointResponse response = getPointBalancePort.getPoint(newUserId);
+        PointSearchResponse response = getPointBalancePort.getPoint(newUserId);
 
         // then
         assertThat(response).isNotNull();
@@ -240,10 +241,10 @@ class PointIntegrationTest {
     void 잘못된_금액_충전_실패() {
         // given
         String requestId = UUID.randomUUID().toString();
-        PointRequest request = new PointRequest(requestId, 0L, UseType.CHARGE);
+        PointRequest request = new PointRequest(requestId, FIXED_UUID, 0L, UseType.CHARGE);
 
         // when & then
-        assertThatThrownBy(() -> savePointPort.savePoint(FIXED_UUID, request))
+        assertThatThrownBy(() -> pointFacade.savePoint(request))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -252,10 +253,10 @@ class PointIntegrationTest {
     void 음수_금액_충전_실패() {
         // given
         String requestId = UUID.randomUUID().toString();
-        PointRequest request = new PointRequest(requestId, -5000L, UseType.CHARGE);
+        PointRequest request = new PointRequest(requestId, FIXED_UUID, -5000L, UseType.CHARGE);
 
         // when & then
-        assertThatThrownBy(() -> savePointPort.savePoint(FIXED_UUID, request))
+        assertThatThrownBy(() -> pointFacade.savePoint(request))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -265,11 +266,11 @@ class PointIntegrationTest {
         // given - 포인트 충전
         String chargeRequestId = UUID.randomUUID().toString();
         long chargeAmount = 10000L;
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(chargeRequestId, chargeAmount, UseType.CHARGE));
+        pointFacade.savePoint(new PointRequest(chargeRequestId, FIXED_UUID, chargeAmount, UseType.CHARGE));
 
         // when - 전액 사용
         String useRequestId = UUID.randomUUID().toString();
-        savePointPort.savePoint(FIXED_UUID, new PointRequest(useRequestId, chargeAmount, UseType.USE));
+        pointFacade.savePoint(new PointRequest(useRequestId, FIXED_UUID, chargeAmount, UseType.USE));
 
         // then
         Point point = pointRepository.findByUserIdWithLock(FIXED_UUID).orElseThrow();

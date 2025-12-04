@@ -1,5 +1,7 @@
 package com.gomdol.concert.reservation.application;
 
+import com.gomdol.concert.common.application.idempotency.port.in.CreateIdempotencyKey;
+import com.gomdol.concert.common.domain.idempotency.ResourceType;
 import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.ReservationSeatCommand;
 import com.gomdol.concert.reservation.application.port.out.ReservationCodeGenerator;
 import com.gomdol.concert.reservation.application.port.out.ReservationPolicyProvider;
@@ -21,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 import static com.gomdol.concert.common.FixedField.*;
 import static com.gomdol.concert.common.ReservationTestFixture.*;
@@ -33,6 +35,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("ReservationUseCase 테스트")
 public class ReservationUseCaseTest {
 
     @Mock
@@ -43,6 +46,9 @@ public class ReservationUseCaseTest {
 
     @Mock
     private ShowQueryRepository showQueryRepository;
+
+    @Mock
+    private CreateIdempotencyKey createIdempotencyKey;
 
     @Mock
     private ReservationCodeGenerator reservationCodeGenerator;
@@ -56,17 +62,23 @@ public class ReservationUseCaseTest {
     @Test
     public void 좌석_1개_예약을_성공적으로_진행한다() throws Exception {
         // given
+        String requestId = UUID.randomUUID().toString();
         given(policyProvider.holdMinutes()).willReturn(10);
         given(policyProvider.maxSeatsPerReservation()).willReturn(4);
-        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L));
+        ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, requestId,1L, List.of(1L));
         List<ReservationSeat> reservationSeats = mockOneReservationSeat();
         Reservation savedReservation = mockOneSeatReservation(reservationSeats);
         List<VenueSeat> venueSeats = mockOneVenueSeat();
-        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(1L)).thenReturn(true);
         when(venueSeatRepository.findByIds(List.of(1L))).thenReturn(venueSeats);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        doNothing().when(createIdempotencyKey).createIdempotencyKey(
+                eq(command.requestId()),
+                eq(command.userId()),
+                eq(ResourceType.RESERVATION),
+                eq(1L)
+        );
         // when
         ReservationResponse result = reservationUseCase.reservationSeat(command);
         // then
@@ -76,7 +88,12 @@ public class ReservationUseCaseTest {
 
         verify(showQueryRepository).existsById(1L);
         verify(venueSeatRepository).findByIds(List.of(1L));
-//        verify(reservationSeatRepository).existsByShowIdAndIdIn(eq(1L), anyList());
+        verify(createIdempotencyKey).createIdempotencyKey(
+                eq(command.requestId()),
+                eq(command.userId()),
+                eq(ResourceType.RESERVATION),
+                eq(1L)
+        );
 
         ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
         verify(reservationRepository).save(captor.capture());
@@ -84,7 +101,7 @@ public class ReservationUseCaseTest {
         assertAll(
                 () -> assertThat(saved.getUserId()).isEqualTo(command.userId()),
                 () -> assertThat(saved.getReservationCode()).isEqualTo(RESERVATION_CODE),
-                () -> assertThat(saved.getRequestId()).isEqualTo(FIXED_REQUEST_ID),
+                () -> assertThat(saved.getRequestId()).isEqualTo(command.requestId()),
                 () -> assertThat(saved.getAmount()).isEqualTo(venueSeats.stream().mapToLong(VenueSeat::getPrice).sum()),
                 () -> assertThat(saved.getReservationSeats().size()).isEqualTo(command.seatIds().size())
         );
@@ -99,11 +116,16 @@ public class ReservationUseCaseTest {
         List<ReservationSeat> reservationSeats = mockReservationSeats();
         Reservation savedReservation = mockReservation(reservationSeats);
         List<VenueSeat> venueSeats = mockVenueSeats();
-        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(1L)).thenReturn(true);
         when(venueSeatRepository.findByIds(List.of(1L, 2L, 3L))).thenReturn(venueSeats);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        doNothing().when(createIdempotencyKey).createIdempotencyKey(
+                eq(command.requestId()),
+                eq(command.userId()),
+                eq(ResourceType.RESERVATION),
+                eq(1L)
+        );
         // when
         ReservationResponse result = reservationUseCase.reservationSeat(command);
         // then
@@ -144,7 +166,6 @@ public class ReservationUseCaseTest {
         given(policyProvider.maxSeatsPerReservation()).willReturn(4);
         given(policyProvider.holdMinutes()).willReturn(10);
         ReservationSeatCommand command = new ReservationSeatCommand(FIXED_UUID, FIXED_REQUEST_ID,1L, List.of(1L,2L,3L));
-        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(showQueryRepository.existsById(command.showId())).thenReturn(true);
         when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(mockVenueSeats());
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
@@ -152,9 +173,10 @@ public class ReservationUseCaseTest {
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate key"));
 
         // when && then
+        // UseCase는 DataIntegrityViolationException을 그대로 전파 (Facade에서 처리)
         assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("이미 선택된 좌석입니다.");
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class)
+                .hasMessageContaining("Duplicate key");
 
     }
 
@@ -182,27 +204,31 @@ public class ReservationUseCaseTest {
         Reservation savedReservation = mockReservation(reservationSeats);
         List<VenueSeat> venueSeats = mockVenueSeats();
 
-        when(reservationRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty(), Optional.of(savedReservation));
+        // 첫 번째 호출은 성공, 두 번째 호출은 DB 제약조건 위반 (멱등성은 Facade에서 처리)
         when(showQueryRepository.existsById(command.showId())).thenReturn(true);
         when(venueSeatRepository.findByIds(command.seatIds())).thenReturn(venueSeats);
         when(reservationCodeGenerator.newReservationCode()).thenReturn(RESERVATION_CODE);
-        when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        when(reservationRepository.save(any(Reservation.class)))
+                .thenReturn(savedReservation)
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate key"));
+        doNothing().when(createIdempotencyKey).createIdempotencyKey(
+                eq(command.requestId()),
+                eq(command.userId()),
+                eq(ResourceType.RESERVATION),
+                eq(1L)
+        );
 
         // when
         ReservationResponse result = reservationUseCase.reservationSeat(command);
-        ReservationResponse secondResult = reservationUseCase.reservationSeat(command);
+
+        // 두 번째 호출은 DataIntegrityViolationException 발생 (멱등성은 Facade에서 처리)
+        assertThatThrownBy(() -> reservationUseCase.reservationSeat(command))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
 
         // then
-        verify(reservationRepository, times(1)).save(any()); // 한 번만 저장
-        assertThat(secondResult.reservationId()).isEqualTo(1L);
-
         assertThat(result).isNotNull();
         assertThat(result.reservationId()).isEqualTo(1L);
         assertThat(result.expiredAt()).isAfter(LocalDateTime.now());
-
-        assertThat(secondResult).isNotNull();
-        assertThat(secondResult.reservationId()).isEqualTo(1L);
-        assertThat(secondResult.expiredAt()).isAfter(LocalDateTime.now());
     }
 
     @Test

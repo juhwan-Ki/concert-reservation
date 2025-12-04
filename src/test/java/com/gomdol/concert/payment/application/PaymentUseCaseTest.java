@@ -1,8 +1,10 @@
 package com.gomdol.concert.payment.application;
 
-import com.gomdol.concert.payment.application.port.in.PaymentPort.PaymentCommand;
+import com.gomdol.concert.common.application.idempotency.port.in.CreateIdempotencyKey;
+import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
-import com.gomdol.concert.payment.application.usecase.PaymentUseCase;
+import com.gomdol.concert.payment.application.usecase.SavePaymentUseCase;
 import com.gomdol.concert.payment.domain.PaymentStatus;
 import com.gomdol.concert.payment.domain.model.Payment;
 import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
@@ -12,6 +14,7 @@ import com.gomdol.concert.point.domain.event.PointResponseEvent;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.domain.model.Reservation;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -33,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("PaymentUseCase 테스트")
 public class PaymentUseCaseTest {
 
     @Mock
@@ -42,13 +46,16 @@ public class PaymentUseCaseTest {
     private ReservationRepository reservationRepository;
 
     @Mock
+    private CreateIdempotencyKey createIdempotencyKey;
+
+    @Mock
     private ApplicationEventPublisher publisher;
 
     @Mock
     private PaymentCodeGenerator codeGenerator;
 
     @InjectMocks
-    private PaymentUseCase useCase;
+    private SavePaymentUseCase useCase;
 
     @Test
     public void 예약처리된_좌석의_결제를_성공한다() throws Exception {
@@ -56,10 +63,15 @@ public class PaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
         Reservation reservation = mockReservation(mockReservationSeats());
         Payment payment = mockPayment();
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.of(reservation));
         when(codeGenerator.newCodeGenerate()).thenReturn(PAYMENT_CODE);
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+        doNothing().when(createIdempotencyKey).createIdempotencyKey(
+                eq(command.requestId()),
+                eq(command.userId()),
+                eq(ResourceType.PAYMENT),
+                eq(1L)
+        );
         // when
         PaymentResponse result = useCase.processPayment(command);
         // then
@@ -131,7 +143,6 @@ public class PaymentUseCaseTest {
     public void 예약이_존재하지_않으면_에러를_발생시킨다() throws Exception {
         // given
         PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.empty());
         // when &&  then
         assertThatThrownBy(() -> useCase.processPayment(command))
@@ -144,7 +155,6 @@ public class PaymentUseCaseTest {
     public void 만료된_예약_결제시_에러를_발생시킨다() throws Exception {
         // given
         PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.of(mockExpireReservation()));
         // when &&  then
         assertThatThrownBy(() -> useCase.processPayment(command))
@@ -156,7 +166,6 @@ public class PaymentUseCaseTest {
     public void 이미_확정된_예약_결제시_에러를_발생시킨다() throws Exception {
         // given
         PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.of(mockOneSeatReservation(mockConfirmedOneReservationSeat())));
         // when &&  then
         assertThatThrownBy(() -> useCase.processPayment(command))
@@ -168,7 +177,6 @@ public class PaymentUseCaseTest {
     public void 취소된_예약_결제시_에러를_발생시킨다() throws Exception {
         // given
         PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty());
         when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.of(mockOneSeatReservation(mockCanceledOneReservationSeat())));
         // when &&  then
         assertThatThrownBy(() -> useCase.processPayment(command))
@@ -183,33 +191,6 @@ public class PaymentUseCaseTest {
 //
 //        // then
 //    }
-
-    @Test
-    public void 동일한_멱등키로_요청이들어오면_이미_완료된_결제라고_에러_발생시킨다() throws Exception {
-        // given
-        PaymentCommand command = new PaymentCommand(1L, FIXED_UUID, FIXED_REQUEST_ID,30000);
-        Reservation reservation = mockReservation(mockReservationSeats());
-        Payment payment = mockPayment();
-        when(paymentRepository.findByRequestId(command.requestId())).thenReturn(Optional.empty(), Optional.of(payment));
-        when(reservationRepository.findById(command.reservationId())).thenReturn(Optional.of(reservation));
-        when(codeGenerator.newCodeGenerate()).thenReturn(PAYMENT_CODE);
-        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
-        // when
-        PaymentResponse result = useCase.processPayment(command);
-        PaymentResponse secondResult = useCase.processPayment(command);
-        // then
-        verify(paymentRepository, times(1)).save(any(Payment.class));
-
-        assertThat(result).isNotNull();
-        assertThat(result.paymentId()).isEqualTo(1L);
-        assertThat(result.reservationId()).isEqualTo(command.reservationId());
-        assertThat(PaymentStatus.PENDING).isEqualTo(payment.getStatus());
-
-        assertThat(secondResult).isNotNull();
-        assertThat(secondResult.paymentId()).isEqualTo(1L);
-        assertThat(secondResult.reservationId()).isEqualTo(command.reservationId());
-        assertThat(PaymentStatus.PENDING).isEqualTo(payment.getStatus());
-    }
 
     private Payment mockPayment() {
         return Payment.of(
@@ -246,6 +227,4 @@ public class PaymentUseCaseTest {
               PaymentStatus.SUCCEEDED,
               LocalDateTime.now());
     }
-
-
 }

@@ -1,6 +1,6 @@
 package com.gomdol.concert.reservation.infra.persistence.entity;
 
-import com.gomdol.concert.common.domain.CreateEntity;
+import com.gomdol.concert.common.infra.persistence.entity.CreateEntity;
 import com.gomdol.concert.reservation.domain.ReservationSeatStatus;
 import com.gomdol.concert.reservation.domain.model.ReservationSeat;
 import jakarta.persistence.*;
@@ -12,7 +12,7 @@ import lombok.*;
 @Table(name = "reservation_seats",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_reservation_seats_unique_slot",
-                        columnNames = {"show_id", "seat_id", "status"})
+                        columnNames = {"show_id", "seat_id"})
         })
 @Getter
 @Builder

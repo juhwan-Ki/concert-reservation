@@ -24,11 +24,20 @@ public class PaymentQueryUseCase {
     private final PaymentRepository paymentRepository;
 
     /**
-     * requestId로 예약 조회 (멱등성 체크용)
+     * requestId로 결제 조회 (멱등성 체크용)
      * 새로운 읽기 전용 트랜잭션에서 실행
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public Optional<Payment> findByRequestId(String requestId) {
         return paymentRepository.findByRequestId(requestId);
+    }
+
+    /**
+     * ID로 결제 조회 (멱등성 체크용)
+     * 새로운 읽기 전용 트랜잭션에서 실행
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public Optional<Payment> findById(Long id) {
+        return paymentRepository.findById(id);
     }
 }

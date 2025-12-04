@@ -1,7 +1,7 @@
 package com.gomdol.concert.point.presentation.controller;
 
-import com.gomdol.concert.common.dto.PageResponse;
-import com.gomdol.concert.common.exception.ApiException;
+import com.gomdol.concert.common.presentation.dto.PageResponse;
+import com.gomdol.concert.common.presentation.exception.ApiException;
 import com.gomdol.concert.point.application.port.in.GetPointBalancePort;
 import com.gomdol.concert.point.application.usecase.SavePointUseCase;
 import com.gomdol.concert.point.domain.model.UseType;
