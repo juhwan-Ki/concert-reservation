@@ -40,17 +40,31 @@ server:
 #    tagsSorter: alpha
 #    displayRequestDuration: true
 
+# 대기열 관련 설정
 queue:
   token-length: 24
   waiting-ttl-seconds: 1800   # 30분
   entered-ttl-seconds: 600   # 10분
   capacity: 50
 
+# 예약 관련 설정
 reservation:
   hold-minutes: 10
   max-seats-per-reservation: 4
   max-retry-count: 3
   retry-delay-millis: 100
+
+# 분산락 관련 설정
+distributed-lock:
+  reservation:
+    wait-time: 3s
+    lease-time: 10s
+  payment:
+    wait-time: 3s
+    lease-time: 10s
+  point:
+    wait-time: 3s
+    lease-time: 10s
 
 springdoc:
   # Swagger UI 제공 경로
