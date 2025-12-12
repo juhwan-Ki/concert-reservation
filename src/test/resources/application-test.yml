@@ -18,6 +18,7 @@ spring:
       password:  # 테스트 환경에서는 비밀번호 없음
 
 queue:
+  repository: redis  # 테스트 환경에서는 DB 기반 사용
   token-length: 24
   waiting-ttl-seconds: 1800
   entered-ttl-seconds: 180

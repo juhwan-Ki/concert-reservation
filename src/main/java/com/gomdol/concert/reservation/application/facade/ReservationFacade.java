@@ -1,25 +1,25 @@
 package com.gomdol.concert.reservation.application.facade;
 
 import com.gomdol.concert.common.application.cache.port.out.CacheRepository;
-import com.gomdol.concert.common.application.idempotency.port.in.GetIdempotencyKey;
+import com.gomdol.concert.common.application.idempotency.service.IdempotencyService;
 import com.gomdol.concert.common.application.lock.port.out.DistributedLock;
 import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.common.infra.config.DistributedLockProperties;
 import com.gomdol.concert.reservation.application.port.in.ReservationResponse;
-import com.gomdol.concert.reservation.application.port.in.ReservationSeatPort;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.application.usecase.ReservationSeatUseCase;
-import com.gomdol.concert.reservation.domain.model.Reservation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.gomdol.concert.common.infra.config.DistributedLockProperties.*;
+import static com.gomdol.concert.common.infra.util.CacheUtils.*;
 import static com.gomdol.concert.reservation.application.port.in.ReservationSeatPort.*;
 
 /**
@@ -35,13 +35,11 @@ import static com.gomdol.concert.reservation.application.port.in.ReservationSeat
 public class ReservationFacade {
 
     private final CacheRepository cacheRepository;
-    private final GetIdempotencyKey getIdempotencyKey;
     private final DistributedLock distributedLock;
+    private final DistributedLockProperties lockProperties;
     private final ReservationSeatUseCase reservationSeatUseCase;
     private final ReservationRepository reservationRepository;
-
-    private static final String CACHE_KEY_PREFIX = "reservation:result:";
-    private static final Duration CACHE_TTL = Duration.ofHours(1);
+    private final IdempotencyService idempotencyService;
 
     /**
      * 좌석 예약 with 멱등성 보장 및 분산 락
@@ -52,7 +50,7 @@ public class ReservationFacade {
      * 5. DB 제약조건 위반 시 멱등성 재확인
      */
     public ReservationResponse reservationSeat(ReservationSeatCommand command) {
-        String cacheKey = CACHE_KEY_PREFIX + command.requestId();
+        String cacheKey = reservationResult(command.requestId());
 
         // Redis 캐시 체크
         Optional<ReservationResponse> cached = cacheRepository.get(cacheKey, ReservationResponse.class);
@@ -61,18 +59,19 @@ public class ReservationFacade {
             return cached.get();
         }
 
-        // requestId 기반 락으로 동일 요청 직렬화 (멱등성 보장)
-        String requestLockKey = "reservation:request:" + command.requestId();
-        return distributedLock.executeWithLock(requestLockKey, 3, 10, TimeUnit.SECONDS, () -> {
-            ReservationResponse response = findByRequestId(command, cacheKey);
-            if (response != null)
-                return response;
+        // 좌석 기반 락만 사용 (좌석 중복 예약 방지)
+        String seatLockKey = generateLockKey(command.showId(), command.seatIds());
+        LockConfig lockConfig = lockProperties.reservation();
 
-            // 좌석 기반 락으로 동시성 제어 (좌석 중복 예약 방지)
-            String seatLockKey = generateLockKey(command.showId(), command.seatIds());
-            return distributedLock.executeWithLock(seatLockKey, 3, 10, TimeUnit.SECONDS,
-                    () -> executeReservation(command, cacheKey));
-        });
+        return distributedLock.executeWithLock(seatLockKey, lockConfig.waitTime().toMillis(), lockConfig.leaseTime().toMillis(), TimeUnit.MILLISECONDS,
+            () -> {
+                ReservationResponse response = findByRequestId(command, cacheKey);
+                if (response != null)
+                    return response;
+
+                return executeReservation(command, cacheKey);
+            }
+        );
     }
 
     /**
@@ -85,7 +84,7 @@ public class ReservationFacade {
             log.info("예약 처리 시작 - userId={}, requestId={}", command.userId(), command.requestId());
             ReservationResponse response = reservationSeatUseCase.reservationSeat(command);
             // 성공 시 캐시에 저장
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            cacheRepository.set(cacheKey, response, RESERVATION_CACHE_TTL);
             log.info("캐시 저장 - requestId={}, reservationId={}", command.requestId(), response.reservationId());
             return response;
         } catch (DataIntegrityViolationException e) {
@@ -104,22 +103,15 @@ public class ReservationFacade {
      * - 멱등키가 등록되어 있으면 동일한 값 반환
      */
     private ReservationResponse findByRequestId(ReservationSeatCommand command, String cacheKey) {
-        Optional<Long> existingReservationId = getIdempotencyKey.getIdempotencyKey(
+        return idempotencyService.findByIdempotencyKey(
                 command.requestId(),
                 command.userId(),
-                ResourceType.RESERVATION
+                ResourceType.RESERVATION,
+                cacheKey,
+                RESERVATION_CACHE_TTL,
+                reservationRepository::findById,  // 엔티티 조회
+                ReservationResponse::fromDomain   // 응답 변환
         );
-
-        if (existingReservationId.isPresent()) {
-            log.info("멱등키 발견: 기존 예약 반환 - requestId={}, reservationId={}",
-                    command.requestId(), existingReservationId.get());
-            Reservation reservation = reservationRepository.findById(existingReservationId.get())
-                    .orElseThrow(() -> new IllegalStateException("멱등성 키는 존재하나 예약을 찾을 수 없습니다."));
-            ReservationResponse response = ReservationResponse.fromDomain(reservation);
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
-            return response;
-        }
-        return null;
     }
 
     /**

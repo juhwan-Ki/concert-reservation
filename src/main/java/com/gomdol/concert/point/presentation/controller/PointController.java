@@ -7,7 +7,6 @@ import com.gomdol.concert.point.application.usecase.SavePointUseCase;
 import com.gomdol.concert.point.domain.model.UseType;
 import com.gomdol.concert.point.presentation.dto.PointHistoryResponse;
 import com.gomdol.concert.point.presentation.dto.PointRequest;
-import com.gomdol.concert.point.presentation.dto.PointResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,6 +26,9 @@ import org.springframework.web.bind.annotation.*;
 import java.nio.file.attribute.UserPrincipal;
 import java.time.OffsetDateTime;
 
+import static com.gomdol.concert.point.application.port.in.GetPointBalancePort.*;
+import static com.gomdol.concert.point.application.port.in.SavePointPort.*;
+
 @Tag(name = "Point", description = "포인트 조회/포인트 충전/포인트 내역 조회")
 @RestController
 @RequiredArgsConstructor
@@ -39,14 +41,14 @@ public class PointController {
     @Operation(summary = "내 포인트 조회", description = "현재 로그인한 사용자의 포인트 잔액을 조회한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = PointResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PointSearchResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(schema = @Schema(implementation = ApiException.class))),
             @ApiResponse(responseCode = "500", description = "서버 오류",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/")
-    public ResponseEntity<PointResponse> getMyPoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me) {
+    public ResponseEntity<PointSearchResponse> getMyPoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me) {
         // TODO: 시큐리티 구현 필요
         return ResponseEntity.ok(getPointBalancePort.getPoint(me.getName()));
     }
@@ -54,7 +56,7 @@ public class PointController {
     @Operation(summary = "내 포인트 충전", description = "현재 로그인한 사용자의 포인트를 충전한다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공",
-                    content = @Content(schema = @Schema(implementation = PointResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PointSaveResponse.class))),
             @ApiResponse(responseCode = "400", description = "요청 값 검증 실패",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
@@ -65,9 +67,9 @@ public class PointController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping("/charges")
-    public ResponseEntity<PointResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me,
-                                                     @Valid @RequestBody PointRequest request) {
-        return ResponseEntity.ok(savePointUseCase.savePoint(me.getName(), request));
+    public ResponseEntity<PointSaveResponse> chargePoint(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal me,
+                                                         @Valid @RequestBody PointRequest request) {
+        return ResponseEntity.ok(savePointUseCase.savePoint(request));
     }
 
     @Operation(summary = "내 포인트 내역 조회", description = "현재 로그인한 사용자의 포인트 내역을 조회한다.")

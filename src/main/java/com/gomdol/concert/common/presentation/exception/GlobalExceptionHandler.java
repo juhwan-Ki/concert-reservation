@@ -55,6 +55,28 @@ public class GlobalExceptionHandler {
         return ErrorResponse.of("DEADLOCK", "요청 처리 중 충돌이 발생했습니다. 다시 시도하세요.", req.getRequestURI());
     }
 
+    @ExceptionHandler(LockAcquisitionException.class)
+    @ResponseStatus(HttpStatus.LOCKED) // 423
+    public ErrorResponse handleDistributedLock(LockAcquisitionException e, HttpServletRequest req) {
+        log.warn("distributed_lock_acquisition_failed userId={} reqId={} uri={} lockKey={} waitTime={}ms",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getLockKey(), e.getWaitTime().toMillis());
+        return ErrorResponse.of("LOCK_ACQUISITION_FAILED",
+                "다른 요청이 처리 중입니다. 잠시 후 다시 시도하세요.",
+                req.getRequestURI());
+    }
+
+    @ExceptionHandler(LockReleaseException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR) // 500
+    public ErrorResponse handleLockRelease(LockReleaseException e, HttpServletRequest req) {
+        log.error("distributed_lock_release_failed userId={} reqId={} uri={} lockKey={} message={}",
+                req.getHeader("X-User-Id"), req.getHeader("Idempotency-Key"),
+                req.getRequestURI(), e.getLockKey(), e.getMessage(), e);
+        return ErrorResponse.of("LOCK_RELEASE_FAILED",
+                "일시적인 오류가 발생했습니다. 잠시 후 다시 시도하세요.",
+                req.getRequestURI());
+    }
+
     @ExceptionHandler(IllegalStateException.class) // 잔액부족 등
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY) // 422
     public ErrorResponse handleBusiness(IllegalStateException e, HttpServletRequest req) {

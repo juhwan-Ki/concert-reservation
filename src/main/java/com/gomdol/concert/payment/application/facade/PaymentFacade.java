@@ -1,22 +1,24 @@
 package com.gomdol.concert.payment.application.facade;
 
 import com.gomdol.concert.common.application.cache.port.out.CacheRepository;
-import com.gomdol.concert.common.application.idempotency.port.in.GetIdempotencyKey;
+import com.gomdol.concert.common.application.idempotency.service.IdempotencyService;
 import com.gomdol.concert.common.application.lock.port.out.DistributedLock;
 import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.common.infra.config.DistributedLockProperties;
 import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.application.usecase.PaymentQueryUseCase;
 import com.gomdol.concert.payment.application.usecase.SavePaymentUseCase;
-import com.gomdol.concert.payment.domain.model.Payment;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static com.gomdol.concert.common.infra.config.DistributedLockProperties.*;
+import static com.gomdol.concert.common.infra.util.CacheUtils.*;
 
 /**
  * 결제 작업 Facade
@@ -31,13 +33,11 @@ import java.util.concurrent.TimeUnit;
 public class PaymentFacade {
 
     private final CacheRepository cacheRepository;
-    private final GetIdempotencyKey getIdempotencyKey;
     private final DistributedLock distributedLock;
+    private final DistributedLockProperties lockProperties;
     private final SavePaymentUseCase paymentUseCase;
     private final PaymentQueryUseCase paymentQueryUseCase;
-
-    private static final String CACHE_KEY_PREFIX = "payment:result:";
-    private static final Duration CACHE_TTL = Duration.ofHours(1);
+    private final IdempotencyService idempotencyService;
 
     /**
      * 결제 처리 with 멱등성 보장 및 분산 락
@@ -48,7 +48,7 @@ public class PaymentFacade {
      * 5. DB 제약조건 위반 시 멱등성 재확인
      */
     public PaymentResponse processPayment(PaymentCommand command) {
-        String cacheKey = CACHE_KEY_PREFIX + command.requestId();
+        String cacheKey = paymentResult(command.requestId());
 
         // Redis 캐시 체크 (가장 빠른 조회)
         Optional<PaymentResponse> cached = cacheRepository.get(cacheKey, PaymentResponse.class);
@@ -64,8 +64,15 @@ public class PaymentFacade {
 
         // 분산 락 획득 및 UseCase 호출
         String lockKey = generateLockKey(command.reservationId());
-        return distributedLock.executeWithLock(lockKey, 3, 10, TimeUnit.SECONDS,
-                () -> executePayment(command, cacheKey));
+        LockConfig lockConfig = lockProperties.payment();
+
+        return distributedLock.executeWithLock(
+            lockKey,
+            lockConfig.waitTime().toMillis(),
+            lockConfig.leaseTime().toMillis(),
+            TimeUnit.MILLISECONDS,
+            () -> executePayment(command, cacheKey)
+        );
     }
 
     /**
@@ -79,7 +86,7 @@ public class PaymentFacade {
             log.info("결제 처리 시작 - userId={}, requestId={}, reservationId={}", command.userId(), command.requestId(), command.reservationId());
             PaymentResponse response = paymentUseCase.processPayment(command);
             // 성공 시 캐시에 저장
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            cacheRepository.set(cacheKey, response, PAYMENT_CACHE_TTL);
             log.info("캐시 저장 - requestId={}, paymentId={}", command.requestId(), response.paymentId());
             return response;
         } catch (DataIntegrityViolationException e) {
@@ -97,23 +104,15 @@ public class PaymentFacade {
      * - 멱등키가 등록되어 있으면 동일한 값 반환
      */
     private PaymentResponse findByRequestId(PaymentCommand command, String cacheKey) {
-        Optional<Long> existingPaymentId = getIdempotencyKey.getIdempotencyKey(
+        return idempotencyService.findByIdempotencyKey(
                 command.requestId(),
                 command.userId(),
-                ResourceType.PAYMENT
+                ResourceType.PAYMENT,
+                cacheKey,
+                PAYMENT_CACHE_TTL,
+                paymentQueryUseCase::findById,  // 엔티티 조회
+                PaymentResponse::fromDomain   // 응답 변환
         );
-
-        if (existingPaymentId.isPresent()) {
-            log.info("DB 멱등성 체크: 기존 결제 반환 - requestId={}, paymentId={}",
-                    command.requestId(), existingPaymentId.get());
-            Payment payment = paymentQueryUseCase.findById(existingPaymentId.get())
-                    .orElseThrow(() -> new IllegalStateException("멱등성 키는 존재하나 결제를 찾을 수 없습니다."));
-            PaymentResponse response = PaymentResponse.fromDomain(payment);
-            // 캐시에 저장 (다음 요청을 위해)
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
-            return response;
-        }
-        return null;
     }
 
     /**

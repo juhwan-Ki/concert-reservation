@@ -2,6 +2,7 @@ package com.gomdol.concert.show.infra.persistence.entity;
 
 import com.gomdol.concert.common.infra.persistence.entity.SoftDeleteEntity;
 import com.gomdol.concert.concert.infra.persistence.entitiy.ConcertEntity;
+import com.gomdol.concert.show.domain.model.Show;
 import com.gomdol.concert.show.domain.model.ShowStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -56,5 +57,27 @@ public class ShowEntity extends SoftDeleteEntity {
 
     public static ShowEntity create(ConcertEntity concert, LocalDateTime showAt, ShowStatus status, int capacity) {
         return new ShowEntity(concert, showAt, status, capacity);
+    }
+
+    /**
+     * Entity → Domain 변환
+     * Fetch Join으로 Concert와 Venue가 로드된 상태에서 호출
+     * Concert와 Venue 모두 필수
+     */
+    public static Show toDomain(ShowEntity entity) {
+        Long concertId = entity.getConcert().getId();
+        String concertTitle = entity.getConcert().getTitle();
+        String venueName = entity.getConcert().getVenue().getName();
+
+        return Show.create(
+                entity.getId(),
+                concertId,
+                entity.getStatus(),
+                entity.getShowAt(),
+                concertTitle,
+                venueName,
+                entity.getCapacity(),
+                entity.getReservationCnt()
+        );
     }
 }

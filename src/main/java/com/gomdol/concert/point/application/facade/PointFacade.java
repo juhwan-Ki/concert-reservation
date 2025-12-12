@@ -4,6 +4,7 @@ import com.gomdol.concert.common.application.cache.port.out.CacheRepository;
 import com.gomdol.concert.common.application.idempotency.port.in.GetIdempotencyKey;
 import com.gomdol.concert.common.application.lock.port.out.DistributedLock;
 import com.gomdol.concert.common.domain.idempotency.ResourceType;
+import com.gomdol.concert.common.infra.config.DistributedLockProperties;
 import com.gomdol.concert.point.application.port.in.GetPointHistoryPort;
 import com.gomdol.concert.point.application.port.in.GetPointHistoryPort.PointHistoryResponse;
 import com.gomdol.concert.point.application.port.in.SavePointPort.PointSaveResponse;
@@ -14,9 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static com.gomdol.concert.common.infra.config.DistributedLockProperties.*;
+import static com.gomdol.concert.common.infra.util.CacheUtils.*;
 
 /**
  * 포인트 작업 Facade
@@ -33,11 +36,9 @@ public class PointFacade {
     private final CacheRepository cacheRepository;
     private final GetIdempotencyKey getIdempotencyKey;
     private final DistributedLock distributedLock;
+    private final DistributedLockProperties lockProperties;
     private final SavePointUseCase savePointUseCase;
     private final GetPointHistoryPort getPointHistoryPort;
-
-    private static final String CACHE_KEY_PREFIX = "point:result:";
-    private static final Duration CACHE_TTL = Duration.ofHours(1);
 
     /**
      * 포인트 충전/사용 with 멱등성 보장 및 분산 락
@@ -48,7 +49,7 @@ public class PointFacade {
      * 5. DB 제약조건 위반 시 멱등성 재확인
      */
     public PointSaveResponse savePoint(PointRequest req) {
-        String cacheKey = CACHE_KEY_PREFIX + req.requestId();
+        String cacheKey = pointResult(req.requestId());
 
         // Redis 캐시 체크 (가장 빠른 조회)
         Optional<PointSaveResponse> cached = cacheRepository.get(cacheKey, PointSaveResponse.class);
@@ -64,7 +65,11 @@ public class PointFacade {
 
         // 분산 락 획득 및 UseCase 호출
         String lockKey = generateLockKey(req.userId());
-        return distributedLock.executeWithLock(lockKey, 3, 10, TimeUnit.SECONDS, () -> executePointSave(req, cacheKey));
+        LockConfig lockConfig = lockProperties.point();
+
+        return distributedLock.executeWithLock(lockKey, lockConfig.waitTime().toMillis(), lockConfig.leaseTime().toMillis(), TimeUnit.MILLISECONDS,
+                () -> executePointSave(req, cacheKey)
+        );
     }
 
     /**
@@ -78,7 +83,7 @@ public class PointFacade {
             log.info("포인트 처리 시작 - userId={}, requestId={}, type={}, amount={}", req.userId(), req.requestId(), req.useType(), req.amount());
             PointSaveResponse response = savePointUseCase.savePoint(req);
             // 성공 시 캐시에 저장
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            cacheRepository.set(cacheKey, response, POINT_CACHE_TTL);
             log.info("포인트 캐시 저장 - requestId={}, balance={}", req.requestId(), response.balance());
             return response;
         } catch (DataIntegrityViolationException e) {
@@ -109,7 +114,7 @@ public class PointFacade {
                     .orElseThrow(() -> new IllegalStateException("멱등성 키는 존재하나 포인트 이력을 찾을 수 없습니다."));
             PointSaveResponse response = new PointSaveResponse(history.id(), history.userId(), history.afterBalance());
             // 캐시에 저장 (다음 요청을 위해)
-            cacheRepository.set(cacheKey, response, CACHE_TTL);
+            cacheRepository.set(cacheKey, response, POINT_CACHE_TTL);
             return response;
         }
         return null;
