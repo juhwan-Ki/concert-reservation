@@ -5,6 +5,7 @@ import com.gomdol.concert.queue.domain.model.QueueStatus;
 import com.gomdol.concert.queue.domain.model.QueueToken;
 import com.gomdol.concert.queue.infra.persistence.entity.QueueTokenEntity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -13,8 +14,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * MySQL 기반 대기열 Repository
+ */
 @Repository
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "queue.repository", havingValue = "db", matchIfMissing = true)
 public class DBQueueRepository implements QueueRepository {
 
     private final QueueJpaRepository jpaRepository;
