@@ -5,12 +5,16 @@ import com.gomdol.concert.common.domain.idempotency.ResourceType;
 import com.gomdol.concert.payment.application.port.in.SavePaymentPort;
 import com.gomdol.concert.payment.application.port.out.PaymentRepository;
 import com.gomdol.concert.payment.domain.model.Payment;
+import com.gomdol.concert.payment.domain.event.PaymentCompletedEvent;
 import com.gomdol.concert.payment.infra.PaymentCodeGenerator;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.point.domain.event.PointRequestedEvent;
 import com.gomdol.concert.point.domain.event.PointResponseEvent;
 import com.gomdol.concert.reservation.application.port.out.ReservationRepository;
 import com.gomdol.concert.reservation.domain.model.Reservation;
+import com.gomdol.concert.reservation.domain.model.ReservationSeat;
+import com.gomdol.concert.show.application.port.out.ShowRepository;
+import com.gomdol.concert.show.domain.model.Show;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,6 +30,7 @@ public class SavePaymentUseCase implements SavePaymentPort{
     private final CreateIdempotencyKey createIdempotencyKey;
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
+    private final ShowRepository showRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final PaymentCodeGenerator codeGenerator;
 
@@ -84,6 +89,9 @@ public class SavePaymentUseCase implements SavePaymentPort{
                 payment.succeed();
                 paymentRepository.save(payment);
                 log.info("결제 완료: paymentId={}", payment.getId());
+
+                // 결제 완료 이벤트 발행 (랭킹 업데이트용)
+                publishPaymentCompletedEvent(payment, reservation);
             } else {
                 // 보상 트랜잭션
                 log.warn("결제 실패 - 보상 시작: requestId={}", event.requestId());
@@ -99,6 +107,41 @@ public class SavePaymentUseCase implements SavePaymentPort{
             log.error("결제 처리 실패: requestId={}", event.requestId(), e);
 //            alertService.sendAlert(...); // TODO: 추후 슬랙 알람 같은거 추가하면 좋을듯
             throw e;
+        }
+    }
+
+    /**
+     * 결제 완료 이벤트 발행
+     * - 트랜잭션 커밋 후 FastSellingEventHandler가 처리
+     */
+    private void publishPaymentCompletedEvent(Payment payment, Reservation reservation) {
+        try {
+            // Reservation에서 showId 추출 (첫 번째 좌석의 showId)
+            Long showId = reservation.getReservationSeats().stream()
+                    .findFirst()
+                    .map(ReservationSeat::getShowId)
+                    .orElseThrow(() -> new IllegalStateException("예약 좌석이 없습니다."));
+
+            // 정보 조회 (랭킹에 필요한 정보)
+            Show show = showRepository.findById(showId).orElseThrow(() -> new IllegalArgumentException("공연을 찾을 수 없습니다. showId=" + showId));
+            int seatCount = reservation.getReservationSeats().size();
+            PaymentCompletedEvent event = PaymentCompletedEvent.of(
+                    payment.getId(),
+                    reservation.getId(),
+                    showId,
+                    show.getConcertId(),
+                    payment.getUserId(),
+                    seatCount,
+                    show.getConcertTitle(),
+                    show.getTotalSeats(),
+                    show.getReservedSeats()
+            );
+
+            eventPublisher.publishEvent(event);
+            log.debug("결제 완료 이벤트 발행 - paymentId={}, reservationId={}, showId={}, title={}", payment.getId(), reservation.getId(), showId, show.getConcertTitle());
+        } catch (Exception e) {
+            log.error("결제 완료 이벤트 발행 실패 - paymentId={}, reservationId={}", payment.getId(), reservation.getId(), e);
+            // 이벤트 발행 실패해도 결제는 성공으로 처리
         }
     }
 }
