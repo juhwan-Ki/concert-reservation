@@ -46,6 +46,7 @@ public class FastSellingRankingService {
         } catch (Exception e) {
             log.error("결제 완료 이벤트 처리 실패 (랭킹 업데이트) - concertId={}", event.concertId(), e);
             // 랭킹 업데이트 실패는 비즈니스 로직에 영향을 주지 않음
+            // TODO: 랭킹 복구 기능 추후 추가
         }
     }
 }

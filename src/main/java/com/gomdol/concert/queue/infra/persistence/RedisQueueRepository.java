@@ -28,10 +28,11 @@ public class RedisQueueRepository implements QueueRepository {
 
     private final StringRedisTemplate redisTemplate;
 
-    private static final String WAITING_KEY = "queue:%d:waiting";
-    private static final String ENTERED_KEY = "queue:%d:entered";
-    private static final String TOKEN_KEY = "queue:token:%s";
-    private static final String USER_TOKEN_KEY = "queue:user:%d:%s";
+    // 대기열 관련 키들은 targetId 기준으로 같은 슬롯에 배치 (hash tag 사용)
+    private static final String WAITING_KEY = "queue:{%d}:waiting";
+    private static final String ENTERED_KEY = "queue:{%d}:entered";
+    private static final String TOKEN_KEY = "queue:{%d}:token:%s";  // targetId 기준으로 그룹핑
+    private static final String USER_TOKEN_KEY = "queue:{%d}:user:%s";
 
     @Override
     public QueueToken issueToken(Long targetId, String userId, String token, QueueStatus status, long ttlSeconds) {
@@ -52,7 +53,7 @@ public class RedisQueueRepository implements QueueRepository {
         }
 
         // 신규 토큰 발급
-        String tokenKey = String.format(TOKEN_KEY, token);
+        String tokenKey = String.format(TOKEN_KEY, targetId, token);
         Instant now = Instant.now();
         Instant expiresAt = now.plusSeconds(ttlSeconds);
 
@@ -111,7 +112,7 @@ public class RedisQueueRepository implements QueueRepository {
 
     @Override
     public List<Long> findActiveTargetIds(Instant now) {
-        // Redis SCAN으로 모든 queue:*:waiting 키 조회
+        // Redis SCAN으로 모든 queue:{*}:waiting 키 조회
         Set<String> keys = new HashSet<>();
         redisTemplate.execute((RedisCallback<Set<String>>) connection -> {
             ScanOptions options = ScanOptions.scanOptions().match("queue:*:waiting").count(100).build();
@@ -124,10 +125,13 @@ public class RedisQueueRepository implements QueueRepository {
 
         return keys.stream()
                 .map(key -> {
-                    String[] parts = key.split(":");
-                    if (parts.length >= 2) {
+                    // queue:{123}:waiting 형식에서 targetId 추출
+                    // queue:{targetId}:waiting 패턴 파싱
+                    int start = key.indexOf('{');
+                    int end = key.indexOf('}');
+                    if (start != -1 && end != -1 && start < end) {
                         try {
-                            return Long.parseLong(parts[1]);
+                            return Long.parseLong(key.substring(start + 1, end));
                         } catch (NumberFormatException e) {
                             log.warn("Invalid targetId in key: {}", key);
                             return null;
@@ -163,7 +167,7 @@ public class RedisQueueRepository implements QueueRepository {
             return;
         }
 
-        String tokenKey = String.format(TOKEN_KEY, token.getToken());
+        String tokenKey = String.format(TOKEN_KEY, token.getTargetId(), token.getToken());
         String waitingKey = String.format(WAITING_KEY, token.getTargetId());
         String enteredKey = String.format(ENTERED_KEY, token.getTargetId());
 
@@ -219,7 +223,7 @@ public class RedisQueueRepository implements QueueRepository {
      * 토큰으로 QueueToken 조회
      */
     private QueueToken findByToken(String token, Long targetId) {
-        String tokenKey = String.format(TOKEN_KEY, token);
+        String tokenKey = String.format(TOKEN_KEY, targetId, token);
         Map<Object, Object> data = redisTemplate.opsForHash().entries(tokenKey);
 
         if (data.isEmpty())

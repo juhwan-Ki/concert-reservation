@@ -164,7 +164,7 @@ class RedisQueueIntegrationTest {
         assertThat(responses).allMatch(r -> r.token().equals(firstToken));
 
         // then: Redis에 토큰이 하나만 존재
-        String userTokenKey = String.format("queue:user:%d:%s", targetId, userId);
+        String userTokenKey = String.format("queue:{%d}:user:%s", targetId, userId);
         String storedToken = redisTemplate.opsForValue().get(userTokenKey);
         assertThat(storedToken).isEqualTo(firstToken);
     }
@@ -180,7 +180,7 @@ class RedisQueueIntegrationTest {
             issueQueueTokenPort.issue(new IssueCommand("user" + i, targetId, "key" + i));
 
         // Redis SortedSet 크기 확인 (50개)
-        String enteredKey = String.format("queue:%d:entered", targetId);
+        String enteredKey = String.format("queue:{%d}:entered", targetId);
         Long beforeSize = redisTemplate.opsForZSet().size(enteredKey);
         assertThat(beforeSize).isEqualTo(50);
 
@@ -213,12 +213,12 @@ class RedisQueueIntegrationTest {
             issueQueueTokenPort.issue(new IssueCommand("user" + i, targetId, "key" + i));
 
         // WAITING 사용자 확인
-        String waitingKey = String.format("queue:%d:waiting", targetId);
+        String waitingKey = String.format("queue:{%d}:waiting", targetId);
         Long waitingCount = redisTemplate.opsForZSet().size(waitingKey);
         assertThat(waitingCount).isEqualTo(10);
 
         // when: ENTERED 토큰을 과거로 설정 (만료 시킴) → 승급 가능하도록
-        String enteredKey = String.format("queue:%d:entered", targetId);
+        String enteredKey = String.format("queue:{%d}:entered", targetId);
         Set<String> members = redisTemplate.opsForZSet().range(enteredKey, 0, -1);
         long pastTime = System.currentTimeMillis() - 100000;
         for (String member : members)
@@ -274,8 +274,8 @@ class RedisQueueIntegrationTest {
         QueueTokenResponse response = issueQueueTokenPort.issue(new IssueCommand(userId, targetId, "ttl-key"));
 
         // then있음
-        String tokenKey = String.format("queue:token:%s", response.token());
-        String userTokenKey = String.format("queue:user:%d:%s", targetId, userId);
+        String tokenKey = String.format("queue:{%d}:token:%s", targetId, response.token());
+        String userTokenKey = String.format("queue:{%d}:user:%s", targetId, userId);
 
         Long tokenTTL = redisTemplate.getExpire(tokenKey, TimeUnit.SECONDS);
         Long userTokenTTL = redisTemplate.getExpire(userTokenKey, TimeUnit.SECONDS);
@@ -321,7 +321,7 @@ class RedisQueueIntegrationTest {
             issueQueueTokenPort.issue(new IssueCommand("user" + i, targetId, "key" + i));
 
         // ENTERED 중 1명 만료시켜서 capacity 확보
-        String enteredKey = String.format("queue:%d:entered", targetId);
+        String enteredKey = String.format("queue:{%d}:entered", targetId);
         Set<String> members = redisTemplate.opsForZSet().range(enteredKey, 0, 0);
         if (members != null && !members.isEmpty()) {
             String member = members.iterator().next();

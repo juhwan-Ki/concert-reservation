@@ -23,9 +23,10 @@ public class RedisFastSellingRankingRepository implements FastSellingRankingRepo
 
     private final StringRedisTemplate redisTemplate;
 
-    private static final String RANKING_KEY = "ranking:fast-selling:concerts";
-    private static final String STATS_KEY_PREFIX = "concert:stats:";
-    private static final String HOURLY_KEY_PREFIX = "concert:sales:hourly:";
+    // 랭킹 관련 키들을 같은 슬롯에 배치 (hash tag 사용)
+    private static final String RANKING_KEY = "ranking:{concerts}:fast-selling";
+    private static final String STATS_KEY_PREFIX = "concert:{concerts}:stats:";
+    private static final String HOURLY_KEY_PREFIX = "concert:{concerts}:sales:hourly:";
     private static final Duration RANKING_TTL = Duration.ofHours(24);
     private static final Duration STATS_TTL = Duration.ofHours(1);
     private static final Duration HOURLY_TTL = Duration.ofHours(2);

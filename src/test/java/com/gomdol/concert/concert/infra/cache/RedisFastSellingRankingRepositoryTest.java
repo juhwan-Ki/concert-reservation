@@ -31,7 +31,7 @@ class RedisFastSellingRankingRepositoryTest {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    private static final String RANKING_KEY = "ranking:fast-selling:concerts";
+    private static final String RANKING_KEY = "ranking:{concerts}:fast-selling";
 
     @BeforeEach
     void setUp() {
