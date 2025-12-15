@@ -3,18 +3,24 @@ package com.gomdol.concert.queue.infra.persistence;
 import com.gomdol.concert.queue.application.port.out.QueueRepository;
 import com.gomdol.concert.queue.domain.model.QueueStatus;
 import com.gomdol.concert.queue.domain.model.QueueToken;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -34,45 +40,91 @@ public class RedisQueueRepository implements QueueRepository {
     private static final String TOKEN_KEY = "queue:{%d}:token:%s";  // targetId 기준으로 그룹핑
     private static final String USER_TOKEN_KEY = "queue:{%d}:user:%s";
 
+    // Lua 스크립트 객체
+    private RedisScript<String> issueTokenScript;
+
+    /**
+     * Lua 스크립트 초기화
+     * - 토큰 확인, 발급, 데이터 저장을 원자적으로 처리
+     */
+    @PostConstruct
+    public void initLuaScript() {
+        String scriptText = """
+                local userTokenKey = KEYS[1]
+                local tokenKey = KEYS[2]
+                local queueKey = KEYS[3]
+
+                local newToken = ARGV[1]
+                local ttl = tonumber(ARGV[2])
+                local userId = ARGV[3]
+                local targetId = ARGV[4]
+                local status = ARGV[5]
+                local createdAt = ARGV[6]
+                local expiresAt = ARGV[7]
+                local score = tonumber(ARGV[8])
+
+                -- 기존 토큰 확인
+                local existingToken = redis.call('GET', userTokenKey)
+                if existingToken then
+                    return existingToken
+                end
+
+                -- 새 토큰 발급: userTokenKey 설정
+                redis.call('SET', userTokenKey, newToken, 'EX', ttl)
+
+                -- 토큰 데이터 저장 (Hash)
+                redis.call('HSET', tokenKey,
+                    'userId', userId,
+                    'targetId', targetId,
+                    'status', status,
+                    'createdAt', createdAt,
+                    'expiresAt', expiresAt,
+                    'token', newToken
+                )
+                redis.call('EXPIRE', tokenKey, ttl)
+
+                -- 대기열/입장열에 추가 (SortedSet)
+                redis.call('ZADD', queueKey, score, userId)
+
+                return newToken
+                """;
+
+        this.issueTokenScript = new DefaultRedisScript<>(scriptText, String.class);
+        log.info("대기열 Lua 스크립트 초기화 완료");
+    }
+
     @Override
     public QueueToken issueToken(Long targetId, String userId, String token, QueueStatus status, long ttlSeconds) {
         String userTokenKey = String.format(USER_TOKEN_KEY, targetId, userId);
-
-        // 존재하지 않을 때만 설정되고, 이미 존재하면 false 반환
-        Boolean isNew = redisTemplate.opsForValue().setIfAbsent(userTokenKey, token, Duration.ofSeconds(ttlSeconds + 60));
-        if (Boolean.FALSE.equals(isNew)) {
-            // 이미 발급된 토큰이 있음 - 기존 토큰 반환
-            String existingToken = redisTemplate.opsForValue().get(userTokenKey);
-            if (existingToken != null) {
-                QueueToken existingQueueToken = findByToken(existingToken, targetId);
-                if (existingQueueToken != null) {
-                    log.debug("기존 토큰 반환 (원자적): targetId={}, userId={}, token={}", targetId, userId, existingToken);
-                    return existingQueueToken;
-                }
-            }
-        }
-
-        // 신규 토큰 발급
         String tokenKey = String.format(TOKEN_KEY, targetId, token);
+        String queueKey = status == QueueStatus.WAITING ? String.format(WAITING_KEY, targetId) : String.format(ENTERED_KEY, targetId);
+
         Instant now = Instant.now();
         Instant expiresAt = now.plusSeconds(ttlSeconds);
-
-        // 토큰 정보 저장 (Hash)
-        Map<String, String> tokenData = new HashMap<>();
-        tokenData.put("userId", userId);
-        tokenData.put("targetId", String.valueOf(targetId));
-        tokenData.put("status", status.name());
-        tokenData.put("createdAt", now.toString());
-        tokenData.put("expiresAt", expiresAt.toString());
-        tokenData.put("token", token);
-
-        redisTemplate.opsForHash().putAll(tokenKey, tokenData);
-        redisTemplate.expire(tokenKey, Duration.ofSeconds(ttlSeconds + 60)); // 여유 TTL
-
-        String queueKey = status == QueueStatus.WAITING ? String.format(WAITING_KEY, targetId) : String.format(ENTERED_KEY, targetId);
         double score = status == QueueStatus.WAITING ? now.toEpochMilli() : expiresAt.toEpochMilli();
 
-        redisTemplate.opsForZSet().add(queueKey, userId, score);
+        // Lua 스크립트로 원자적으로 처리 (토큰 확인 + 발급 + 데이터 저장)
+        String resultToken = redisTemplate.execute(
+                issueTokenScript,
+                List.of(userTokenKey, tokenKey, queueKey),
+                token,
+                String.valueOf(ttlSeconds + 60),
+                userId,
+                String.valueOf(targetId),
+                status.name(),
+                now.toString(),
+                expiresAt.toString(),
+                String.valueOf(score)
+        );
+
+        // 기존 토큰이 반환된 경우
+        if (!resultToken.equals(token)) {
+            QueueToken existingQueueToken = findByToken(resultToken, targetId);
+            if (existingQueueToken != null) {
+                log.debug("기존 토큰 반환: targetId={}, userId={}, token={}", targetId, userId, resultToken);
+                return existingQueueToken;
+            }
+        }
 
         // Position 계산 (WAITING인 경우)
         long position = 0;
@@ -81,7 +133,7 @@ public class RedisQueueRepository implements QueueRepository {
             position = rank != null ? rank + 1 : 1;
         }
 
-        log.info("토큰 발급: targetId={}, userId={}, status={}, position={}", targetId, userId, status, position);
+        log.info("신규 토큰 발급: targetId={}, userId={}, status={}, position={}", targetId, userId, status, position);
         return QueueToken.create(token, userId, targetId, status, position, ttlSeconds);
     }
 

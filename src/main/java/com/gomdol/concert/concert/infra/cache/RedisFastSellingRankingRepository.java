@@ -1,9 +1,12 @@
 package com.gomdol.concert.concert.infra.cache;
 
 import com.gomdol.concert.concert.application.port.out.FastSellingRankingRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -30,6 +33,39 @@ public class RedisFastSellingRankingRepository implements FastSellingRankingRepo
     private static final Duration RANKING_TTL = Duration.ofHours(24);
     private static final Duration STATS_TTL = Duration.ofHours(1);
     private static final Duration HOURLY_TTL = Duration.ofHours(2);
+    // Lua 스크립트 객체
+    private RedisScript<Long> incrementHourlySalesScript;
+
+    /**
+     * Lua 스크립트 초기화
+     * 애플리케이션 시작 시 한 번만 실행하여 성능 최적화
+     */
+    @PostConstruct
+    public void initLuaScript() {
+        String scriptText = """
+                local key = KEYS[1]
+                local currentHour = ARGV[1]
+                local ttlSeconds = tonumber(ARGV[2])
+
+                -- 현재 시간 필드 증가
+                redis.call('HINCRBY', key, currentHour, 1)
+
+                -- 이전 시간 필드들 삭제
+                local fields = redis.call('HKEYS', key)
+                for _, field in ipairs(fields) do
+                    if tonumber(field) < tonumber(currentHour) then
+                        redis.call('HDEL', key, field)
+                    end
+                end
+
+                -- TTL 설정
+                redis.call('EXPIRE', key, ttlSeconds)
+                return 1
+                """;
+
+        this.incrementHourlySalesScript = new DefaultRedisScript<>(scriptText, Long.class);
+        log.info("Lua 스크립트 초기화 완료");
+    }
 
     @Override
     public void updateConcertScore(Long concertId, double score) {
@@ -48,19 +84,14 @@ public class RedisFastSellingRankingRepository implements FastSellingRankingRepo
             String hourlyKey = HOURLY_KEY_PREFIX + concertId;
             long currentHour = System.currentTimeMillis() / 3600000;
 
-            // 현재 시간대에 판매량 증가
-            redisTemplate.opsForHash().increment(hourlyKey, String.valueOf(currentHour), 1);
+            // Lua 스크립트로 원자적 실행
+            redisTemplate.execute(
+                    incrementHourlySalesScript,
+                    List.of(hourlyKey),
+                    String.valueOf(currentHour),
+                    String.valueOf(HOURLY_TTL.toSeconds())
+            );
 
-            // 1시간 이전 데이터 삭제
-            Map<Object, Object> allSales = redisTemplate.opsForHash().entries(hourlyKey);
-            allSales.keySet().forEach(field -> {
-                long hour = Long.parseLong(field.toString());
-                if (hour < currentHour) {
-                    redisTemplate.opsForHash().delete(hourlyKey, field);
-                }
-            });
-
-            redisTemplate.expire(hourlyKey, HOURLY_TTL);
             log.debug("시간당 판매량 증가 - concertId={}, hour={}", concertId, currentHour);
         } catch (Exception e) {
             log.error("시간당 판매량 증가 실패 - concertId={}", concertId, e);
