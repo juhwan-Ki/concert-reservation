@@ -6,8 +6,8 @@ import com.gomdol.concert.common.application.lock.port.out.DistributedLock;
 import com.gomdol.concert.common.domain.idempotency.ResourceType;
 import com.gomdol.concert.common.infra.config.DistributedLockProperties;
 import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
+import com.gomdol.concert.payment.application.usecase.PaymentSaveUseCase;
 import com.gomdol.concert.payment.application.usecase.PaymentQueryUseCase;
-import com.gomdol.concert.payment.application.usecase.SavePaymentUseCase;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +27,7 @@ import static com.gomdol.concert.common.infra.util.CacheUtils.*;
  * - Redis 분산 락으로 동시성 제어
  * - 단일 트랜잭션으로 비즈니스 로직 실행
  */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,8 +36,8 @@ public class PaymentFacade {
     private final CacheRepository cacheRepository;
     private final DistributedLock distributedLock;
     private final DistributedLockProperties lockProperties;
-    private final SavePaymentUseCase paymentUseCase;
     private final PaymentQueryUseCase paymentQueryUseCase;
+    private final PaymentSaveUseCase paymentSaveUseCase;
     private final IdempotencyService idempotencyService;
 
     /**
@@ -83,8 +84,8 @@ public class PaymentFacade {
      */
     private PaymentResponse executePayment(PaymentCommand command, String cacheKey) {
         try {
-            log.info("결제 처리 시작 - userId={}, requestId={}, reservationId={}", command.userId(), command.requestId(), command.reservationId());
-            PaymentResponse response = paymentUseCase.processPayment(command);
+            log.info("결제 처리 시작 (동기) - userId={}, requestId={}, reservationId={}", command.userId(), command.requestId(), command.reservationId());
+            PaymentResponse response = paymentSaveUseCase.processPayment(command);
             // 성공 시 캐시에 저장
             cacheRepository.set(cacheKey, response, PAYMENT_CACHE_TTL);
             log.info("캐시 저장 - requestId={}, paymentId={}", command.requestId(), response.paymentId());
