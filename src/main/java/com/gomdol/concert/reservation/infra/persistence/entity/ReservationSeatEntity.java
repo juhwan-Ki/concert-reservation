@@ -50,6 +50,7 @@ public class ReservationSeatEntity extends CreateEntity {
                 entity.getReservation().getId(),
                 entity.getSeatId(),
                 entity.getShowId(),
+                entity.getPrice(),
                 entity.getStatus()
         );
     }

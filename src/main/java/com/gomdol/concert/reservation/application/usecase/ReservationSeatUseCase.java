@@ -68,7 +68,7 @@ public class ReservationSeatUseCase implements ReservationSeatPort {
         String reservationCode = reservationCodeGenerator.newReservationCode();
         List<ReservationSeat> seats = venueSeats.stream() // 데드락 발생을 줄이기 위해 정렬함
                 .sorted(Comparator.comparing(VenueSeat::getVenueId))  // 다시 한번 확인
-                .map(seat -> ReservationSeat.create(null, seat.getId(), command.showId()))
+                .map(seat -> ReservationSeat.create(null, seat.getId(), command.showId(), seat.getPrice()))
                 .toList();
 
         // 예외를 던져서 Facade에서 처리하도록 함 (트랜잭션 rollback-only 문제 방지)

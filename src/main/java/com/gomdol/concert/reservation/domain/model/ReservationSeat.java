@@ -10,39 +10,41 @@ public class ReservationSeat {
     private final Long reservationId;
     private final Long seatId;           // ID로만 참조
     private final Long showId;           // ID로만 참조
+    private final Long price;
     private final ReservationSeatStatus status;
 
-    private ReservationSeat(Long id, Long reservationId, Long seatId, Long showId, ReservationSeatStatus status) {
+    private ReservationSeat(Long id, Long reservationId, Long seatId, Long showId, Long price, ReservationSeatStatus status) {
         this.id = id;
         this.reservationId = reservationId;
         this.seatId = seatId;
         this.showId = showId;
+        this.price = price;
         this.status = status;
     }
 
     // 팩토리 메서드
-    public static ReservationSeat create(Long reservationId, Long seatId, Long showId) {
-        return new ReservationSeat(null, reservationId, seatId, showId, ReservationSeatStatus.HOLD);
+    public static ReservationSeat create(Long reservationId, Long seatId, Long showId, Long price) {
+        return new ReservationSeat(null, reservationId, seatId, showId, price, ReservationSeatStatus.HOLD);
     }
 
-    public static ReservationSeat of(Long id, Long reservationId, Long seatId, Long showId, ReservationSeatStatus status) {
-        return new ReservationSeat(id, reservationId, seatId, showId, status);
+    public static ReservationSeat of(Long id, Long reservationId, Long seatId, Long showId, Long price, ReservationSeatStatus status) {
+        return new ReservationSeat(id, reservationId, seatId, showId, price, status);
     }
 
     // 상태 변경 메서드
     public ReservationSeat confirm() {
         validateCanConfirm();
-        return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.CONFIRMED);
+        return new ReservationSeat(id, reservationId, seatId, showId, price, ReservationSeatStatus.CONFIRMED);
     }
 
     public ReservationSeat cancel() {
         validateCanCancel();
-        return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.CANCELED);
+        return new ReservationSeat(id, reservationId, seatId, showId, price, ReservationSeatStatus.CANCELED);
     }
 
     public ReservationSeat expire() {
         if (this.status == ReservationSeatStatus.HOLD)
-            return new ReservationSeat(id, reservationId, seatId, showId, ReservationSeatStatus.EXPIRED);
+            return new ReservationSeat(id, reservationId, seatId, showId, price, ReservationSeatStatus.EXPIRED);
 
         return this;
     }
