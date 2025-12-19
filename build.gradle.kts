@@ -52,6 +52,16 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.redisson:redisson-spring-boot-starter:3.35.0")
 
+	// retry
+	implementation("org.springframework.retry:spring-retry")
+	implementation("org.springframework:spring-aspects")
+
+	// http client
+	implementation("org.springframework.boot:spring-boot-starter-webflux")
+
+	// kafka
+	implementation("org.springframework.kafka:spring-kafka")
+
 	// DB
 	runtimeOnly("com.mysql:mysql-connector-j")
 
@@ -60,6 +70,10 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:mysql")
+	testImplementation("org.testcontainers:kafka")
+	testImplementation("org.springframework.kafka:spring-kafka-test")
+	testImplementation("org.wiremock:wiremock-standalone:3.3.1")
+	testImplementation("org.awaitility:awaitility:4.2.0")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

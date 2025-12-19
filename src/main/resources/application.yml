@@ -55,6 +55,70 @@ reservation:
   max-retry-count: 3
   retry-delay-millis: 100
 
+# 데이터 플랫폼 외부 API 설정
+data-platform:
+  base-url: http://localhost:9090
+  timeout-seconds: 5
+  retry:
+    max-attempts: 3
+    backoff-millis: 1000
+
+# Kafka 설정
+kafka:
+  bootstrap-servers: localhost:9092
+  topics:
+    # Commands (Payment → Other Services)
+    use-point-command: use-point-command
+    refund-point-command: refund-point-command
+    confirm-seats-command: confirm-seats-command
+    cancel-seats-command: cancel-seats-command
+    # Events (Other Services → Payment)
+    point-used-event: point-used-event
+    point-refunded-event: point-refunded-event
+    seats-confirmed-event: seats-confirmed-event
+    seats-cancelled-event: seats-cancelled-event
+    # 후속 이벤트 토픽 (비동기)
+    payment-completed: payment-completed
+    reservation-completed: reservation-completed
+    reservation-completed-dlt: reservation-completed-dlt
+
+  # Consumer Groups (각 서비스별 독립된 컨슈머 그룹)
+  consumer:
+    payment-group: payment-service-group
+    point-group: point-service-group
+    reservation-group: reservation-service-group
+    data-platform-group: data-platform-group
+    # Consumer 상세 설정
+    enable-auto-commit: false  # 수동 커밋 (메시지 처리 보장)
+    auto-offset-reset: earliest
+    max-poll-records: 100
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    properties:
+      spring.json.trusted.packages: "*"
+      isolation.level: read_committed  # 트랜잭션 커밋된 메시지만 읽기
+
+  # Producer 설정
+  producer:
+    acks: all  # 모든 replica 확인 (강한 일관성)
+    retries: 3
+    batch-size: 16384
+    linger-ms: 10
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      enable.idempotence: true  # 멱등성 보장
+      max.in.flight.requests.per.connection: 5
+
+# Outbox Scheduler 설정
+outbox:
+  scheduler:
+    publish-interval-ms: 5000      # PENDING 이벤트 발행 주기 (5초)
+    retry-interval-ms: 60000       # FAILED 이벤트 재시도 주기 (1분)
+    max-retries: 3                 # 최대 재시도 횟수
+    batch-size: 100                # 배치 처리 크기
+    cleanup-days: 7                # PUBLISHED 이벤트 보관 기간 (일)
+
 # 분산락 관련 설정
 distributed-lock:
   reservation:
