@@ -2,6 +2,8 @@ package com.gomdol.concert.payment.presentation.controller;
 
 import com.gomdol.concert.common.presentation.exception.ApiException;
 import com.gomdol.concert.common.infra.security.QueuePrincipal;
+import com.gomdol.concert.payment.application.facade.PaymentFacade;
+import com.gomdol.concert.payment.application.port.in.SavePaymentPort.PaymentCommand;
 import com.gomdol.concert.payment.presentation.dto.PaymentRequest;
 import com.gomdol.concert.payment.presentation.dto.PaymentResponse;
 import com.gomdol.concert.payment.presentation.dto.RefundResponse;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,8 +24,11 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Payment")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/payments")
 public class PaymentController {
+
+    private final PaymentFacade paymentFacade;
 
     @Operation(summary = "결제",
             description = "예약 ID와 금액으로 즉시 결제를 시도한다. (멱등성 지원: Idempotency-Key)")
@@ -40,13 +46,18 @@ public class PaymentController {
     })
     @PostMapping("/")
     public ResponseEntity<PaymentResponse> pay(
-            @RequestHeader(value = "Idempotencyxx-Key", required = false) String idemKey,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idemKey,
             @Valid @RequestBody PaymentRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal user,
             @Parameter(hidden = true) @RequestAttribute("queuePrincipal") QueuePrincipal queue // 시큐리티에서 처리 예정
     ) {
-        // TODO: 예약 전 토큰이 완료되었는지 확인 필요
-        return ResponseEntity.ok(null);
+        String userId = user != null ? user.getName() : "test-user"; // TODO: 실제 인증 구현 시 수정
+        String requestId = idemKey != null ? idemKey : java.util.UUID.randomUUID().toString();
+        PaymentCommand command = new PaymentCommand(request.reservationId(), userId, requestId, request.amount());
+
+        // Facade를 통해 멱등성 보장 + 분산 락 + 동기 결제 처리
+        PaymentResponse response = paymentFacade.processPayment(command);
+        return ResponseEntity.ok(response);
     }
 
     // TODO: 현재 부분 환불은 하지 않고 전체 환불만 가능하도록 함
