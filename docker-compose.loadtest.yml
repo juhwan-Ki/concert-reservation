@@ -1,0 +1,287 @@
+# 부하 테스트용 Docker Compose 설정
+# 다양한 리소스 제한 프로파일 제공
+#
+# 사용법:
+# 1. Low Spec:   docker-compose -f docker-compose.loadtest.yml --profile low up
+# 2. Medium Spec: docker-compose -f docker-compose.loadtest.yml --profile medium up
+# 3. High Spec:  docker-compose -f docker-compose.loadtest.yml --profile high up
+
+version: '3.8'
+
+x-app-common: &app-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  depends_on:
+    - mysql
+    - redis
+    - kafka
+  environment:
+    - SPRING_PROFILES_ACTIVE=dev
+    - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/concert_reservation?serverTimezone=UTC
+    - SPRING_DATASOURCE_USERNAME=application
+    - SPRING_DATASOURCE_PASSWORD=application
+    - SPRING_DATA_REDIS_HOST=redis
+    - SPRING_DATA_REDIS_PORT=6379
+    - SPRING_DATA_REDIS_PASSWORD=redis123
+    - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    - JAVA_TOOL_OPTIONS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
+  ports:
+    - "8080:8080"
+  networks:
+    - loadtest
+
+services:
+  # ==========================================
+  # Application Servers with Resource Limits
+  # ==========================================
+
+  # Low Spec: 1 CPU, 512MB RAM
+  app-low:
+    <<: *app-common
+    container_name: concert-app-low
+    profiles: ["low"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/concert_reservation?serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=application
+      - SPRING_DATASOURCE_PASSWORD=application
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=redis123
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx384m -XX:+UseG1GC
+
+  # Medium Spec: 2 CPU, 1GB RAM (권장 스펙)
+  app-medium:
+    <<: *app-common
+    container_name: concert-app-medium
+    profiles: ["medium"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/concert_reservation?serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=application
+      - SPRING_DATASOURCE_PASSWORD=application
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=redis123
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m -XX:+UseG1GC
+
+  # High Spec: 4 CPU, 2GB RAM
+  app-high:
+    <<: *app-common
+    container_name: concert-app-high
+    profiles: ["high"]
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G
+        reservations:
+          cpus: '2.0'
+          memory: 1G
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/concert_reservation?serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=application
+      - SPRING_DATASOURCE_PASSWORD=application
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=redis123
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JAVA_TOOL_OPTIONS=-Xms1g -Xmx1536m -XX:+UseG1GC
+
+  # ==========================================
+  # Infrastructure Services
+  # ==========================================
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-loadtest
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=application
+      - MYSQL_PASSWORD=application
+      - MYSQL_DATABASE=concert_reservation
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - loadtest
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=200
+      --innodb_buffer_pool_size=1G
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-loadtest
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis123 --maxmemory 512mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    volumes:
+      - redis_data:/data
+    networks:
+      - loadtest
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper-loadtest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    volumes:
+      - zk_data:/var/lib/zookeeper/data
+      - zk_log:/var/lib/zookeeper/log
+    networks:
+      - loadtest
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-loadtest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - loadtest
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-loadtest
+    depends_on:
+      - kafka
+    ports:
+      - "8989:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - loadtest
+
+  # ==========================================
+  # Monitoring Stack
+  # ==========================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-loadtest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    networks:
+      - loadtest
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-loadtest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - loadtest
+
+volumes:
+  mysql_data:
+  redis_data:
+  zk_data:
+  zk_log:
+  kafka_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  loadtest:
+    driver: bridge
